@@ -289,3 +289,35 @@ DROP POLICY IF EXISTS "interactions_select" ON public.interactions;
 CREATE POLICY "interactions_select" ON public.interactions
   FOR SELECT USING (public.is_tenant_member(auth.uid(), public.agent_tenant_id(agent_id)));
 ```
+
+---
+
+## [2026-09-30] Tenant ANSER + agente de monitoramento (cérebro documentado)
+
+```sql
+-- Novo tenant: ANSER. Agente de monitoramento de atendimento (semaforo por
+-- grupo de WhatsApp + relatorios periodicos), portado de C:\projetos\wpp-ai-platform.
+-- Cerebro documentado na integra -- a logica de execucao (tempo + analise de IA)
+-- ainda nao foi portada, ver decisoes pendentes na conversa.
+
+INSERT INTO public.tenants (id, name)
+VALUES ('anser', 'ANSER')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.agents (id, name, tenant_id, enabled)
+VALUES ('anser-monitor', 'Agente Monitoramento de Atendimento', 'anser', false)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.tenant_users (user_id, tenant_id)
+VALUES ('f06e34ce-c864-4957-9b0d-636b80b60eab', 'anser')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.brains (agent_id, content, updated_by)
+VALUES ('anser-monitor', $brain$# Cérebro — Agente Monitoramento de Atendimento (ANSER)
+
+(conteúdo completo — ver supabase/migrations/20260930000005_anser_tenant.sql —
+regras de semáforo, alertas por tempo, alertas por IA, roteamento de alertas,
+reports periódicos 4x/dia, Oráculo, e pendências de implementação)
+$brain$, 'migration-anser')
+ON CONFLICT (agent_id) DO NOTHING;
+```
