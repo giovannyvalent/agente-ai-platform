@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutGrid, Bot, BarChart3, Settings, Menu, X, LogOut } from "lucide-react";
+import { LayoutGrid, Bot, BarChart3, Settings, Zap, Menu, X, LogOut } from "lucide-react";
 import { Logo } from "./Logo";
 import { supabase } from "../lib/supabase";
 
@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabase";
 const nav = [
   { to: "/dashboard", label: "Visão geral", icon: LayoutGrid, end: true },
   { to: "/dashboard/agentes", label: "Agentes", icon: Bot },
+  { to: "/dashboard/disparos", label: "Disparos", icon: Zap },
   { to: "/dashboard/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
 ];

@@ -2,6 +2,8 @@ import express, { Request, Response } from "express";
 import { getAgent, listEnabledAgents } from "../agents/index.js";
 import { handleIncomingWhatsApp, handleIncomingTrelloEvent, runMonitorCycle } from "../lib/runtime.js";
 import type { ZApiPayload } from "../lib/zapi.js";
+import { getDispatchByToken, touchDispatch } from "../lib/dispatches.js";
+import { runDispatch } from "../lib/dispatch-runner.js";
 
 const app = express();
 app.use(express.json());
@@ -82,6 +84,32 @@ app.get("/api/cron/monitor", async (req: Request, res: Response) => {
   });
 
   res.status(200).json({ ok: true, agents: agents.length, failed: results.filter((r) => r.status === "rejected").length });
+});
+
+// ─── DISPARO — link gerado no painel, pra colar num cron externo ─────
+// O token na URL é o próprio segredo (igual um webhook comum) — sem header
+// extra, pra funcionar direto em qualquer serviço de cron externo.
+app.all("/api/dispatch/:token", async (req: Request, res: Response) => {
+  try {
+    const dispatch = await getDispatchByToken(req.params.token as string);
+    if (!dispatch || !dispatch.enabled) {
+      res.status(404).json({ ok: false });
+      return;
+    }
+
+    const agent = await getAgent(dispatch.agent_id);
+    if (!agent) {
+      res.status(404).json({ ok: false, error: "agente não encontrado" });
+      return;
+    }
+
+    const result = await runDispatch(agent, dispatch.rules);
+    await touchDispatch(dispatch.id).catch(() => {});
+    res.status(200).json({ ok: true, result });
+  } catch (err) {
+    console.error("[dispatch] erro:", (err as Error).message);
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
 });
 
 // ─── HEALTH ────────────────────────────────────────────────────────
