@@ -1,7 +1,7 @@
 import type { AgentConfig, AgentBoard } from "./types.js";
 import { getAgentEnv } from "./env.js";
 import { getLists, getBoardCards, isCardOverdue } from "./trello.js";
-import type { TrelloCreds } from "./trello.js";
+import type { TrelloCreds, TrelloList } from "./trello.js";
 
 /**
  * Responde mensagens do WhatsApp com base em comandos fixos (sem IA) — consulta o
@@ -27,6 +27,24 @@ function normalize(s: string): string {
 function findBoard(agent: AgentConfig, text: string): AgentBoard | undefined {
   const n = normalize(text);
   return (agent.boards ?? []).find((b) => n.includes(normalize(b.label)) || n.includes(normalize(b.id)));
+}
+
+// Acha a lista/coluna mencionada na frase por sobreposição de palavras (ex.: "coluna
+// setembro" bate com a lista "SETEMBRO"; "pendentes" bate com "CONTEÚDOS PENDENTES -
+// AGUARDANDO INFO OU VÍDEO"). Pega a lista com mais palavras em comum, exige pelo menos 1.
+function findList(lists: TrelloList[], text: string): TrelloList | undefined {
+  const n = normalize(text);
+  let best: TrelloList | undefined;
+  let bestScore = 0;
+  for (const l of lists) {
+    const words = normalize(l.name).split(/\s+/).filter((w) => w.length > 2);
+    const score = words.filter((w) => n.includes(w)).length;
+    if (score > bestScore) {
+      bestScore = score;
+      best = l;
+    }
+  }
+  return best;
 }
 
 async function formatBoardStatus(agent: AgentConfig, board: AgentBoard): Promise<string> {
@@ -80,12 +98,33 @@ async function formatSearch(agent: AgentConfig, query: string, board?: AgentBoar
   return `🔎 *Busca: "${query}"* (${matches.length} resultado${matches.length > 1 ? "s" : ""})\n\n${matches.slice(0, 15).join("\n\n")}${extra}`;
 }
 
+async function formatListCards(agent: AgentConfig, board: AgentBoard, list: TrelloList): Promise<string> {
+  const creds = trelloCreds(agent);
+  const cards = await getBoardCards(creds, board.trelloBoardId);
+  const inList = cards.filter((c) => c.idList === list.id);
+
+  if (inList.length === 0) {
+    return `📋 *${board.label} → ${list.name}*\nNenhum card nessa coluna.`;
+  }
+
+  const lines = inList.slice(0, 25).map((c) => {
+    const dueStr = c.due
+      ? ` — prazo ${new Date(c.due).toLocaleDateString("pt-BR")}${c.dueComplete ? " ✅" : isCardOverdue(c) ? " 🔴" : ""}`
+      : "";
+    return `• ${c.name}${dueStr}\n  ${c.shortUrl}`;
+  });
+  const extra = inList.length > 25 ? `\n\n… e mais ${inList.length - 25}.` : "";
+
+  return `📋 *${board.label} → ${list.name}* (${inList.length} card${inList.length > 1 ? "s" : ""})\n\n${lines.join("\n\n")}${extra}`;
+}
+
 function helpText(agent: AgentConfig): string {
   const clients = (agent.boards ?? []).map((b) => `• ${b.label}`).join("\n") || "(nenhum cliente cadastrado)";
   return (
     `Não entendi — algumas formas que eu reconheço:\n\n` +
     `• "quais demandas estão atrasadas" / "status" — resumo de atrasados\n` +
     `• "tem algum card sobre <assunto>" / "buscar <termo>" — procura pelo nome\n` +
+    `• "mostra a coluna <nome> do <cliente>" — lista tudo que está naquela coluna\n` +
     `• "quais clientes vocês acompanham" — lista os boards\n\n` +
     `Clientes atuais:\n${clients}`
   );
@@ -97,6 +136,7 @@ function helpText(agent: AgentConfig): string {
 // do padrão caem no texto de ajuda. Pra expandir, é só adicionar mais gatilhos aqui.
 const STATUS_TRIGGERS = ["atrasad", "vencid", "pendente", "status", "andamento", "travad", "parad", "em dia", "atraso"];
 const CLIENTS_TRIGGERS = ["quais cliente", "quais board", "que cliente", "clientes voce", "clientes vc", "quem voce acompanha", "quem vc acompanha", "lista de cliente"];
+const COLUMN_TRIGGERS = ["coluna", "o que tem em", "o que esta em", "o que ta em", "mostra a lista", "mostra a coluna"];
 const SEARCH_TRIGGERS = [
   "busca", "buscar", "procura", "procurar",
   "tem algum", "tem alguma", "tem algo", "tem card",
@@ -129,6 +169,20 @@ export async function handleCommand(agent: AgentConfig, text: string): Promise<s
 
   if (n === "clientes" || n === "boards" || CLIENTS_TRIGGERS.some((k) => n.includes(k))) {
     return `Clientes que acompanho:\n\n${boards.map((b) => `• ${b.label}`).join("\n")}`;
+  }
+
+  if (COLUMN_TRIGGERS.some((k) => n.includes(k))) {
+    let board = findBoard(agent, text);
+    if (!board && boards.length === 1) board = boards[0];
+    if (!board) {
+      return `De qual cliente? ${boards.map((b) => b.label).join(", ")}`;
+    }
+    const lists = await getLists(trelloCreds(agent), board.trelloBoardId);
+    const list = findList(lists, text);
+    if (!list) {
+      return `Não identifiquei a coluna. As colunas de *${board.label}* são:\n\n${lists.map((l) => `• ${l.name}`).join("\n")}`;
+    }
+    return formatListCards(agent, board, list);
   }
 
   if (SEARCH_TRIGGERS.some((k) => n.includes(k))) {
