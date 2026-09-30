@@ -4,9 +4,7 @@ import { sendTextMessage, isValidIncoming, extractText } from "./zapi.js";
 import type { ZApiCreds, ZApiPayload } from "./zapi.js";
 import { getLists, getBoardCards, isCardOverdue } from "./trello.js";
 import type { TrelloCreds } from "./trello.js";
-import { askClaude } from "./claude.js";
-import { getHistory, pushHistory } from "./history.js";
-import { loadBrain } from "../agents/index.js";
+import { handleCommand } from "./commands.js";
 
 function zapiCreds(agent: AgentConfig): ZApiCreds {
   return {
@@ -31,27 +29,16 @@ function managementPhones(agent: AgentConfig): string[] {
 }
 
 // ─── WHATSAPP — mensagem recebida ─────────────────────────────────
+// Sem IA por enquanto (decisão explícita) — responde por comando fixo, consultando
+// o Trello de verdade. Ver lib/commands.ts. Quando o Claude for ativado, isso pode
+// virar uma ferramenta que a IA chama em vez do ponto de entrada direto.
 export async function handleIncomingWhatsApp(agent: AgentConfig, payload: ZApiPayload): Promise<void> {
   if (!isValidIncoming(payload)) return;
 
   const text = extractText(payload)!;
   const replyTo = payload.participantPhone ?? payload.phone;
-  const historyKey = `${agent.id}:${replyTo}`;
 
-  const brain = loadBrain(agent);
-  const system = [
-    `Você é "${agent.name}", um agente operacional que conversa via WhatsApp.`,
-    `Seja direto, objetivo e responda sempre em português brasileiro.`,
-    ``,
-    `Base de conhecimento e regras deste agente (siga à risca):`,
-    brain || "(nenhuma regra cadastrada ainda em brain.md — responda de forma genérica e avise que ainda está sendo configurado)",
-  ].join("\n");
-
-  const history = getHistory(historyKey);
-  const reply = await askClaude(system, history, text, agent.claudeModel);
-
-  pushHistory(historyKey, "user", text);
-  pushHistory(historyKey, "assistant", reply);
+  const reply = await handleCommand(agent, text);
 
   await sendTextMessage(zapiCreds(agent), replyTo, reply);
 }
