@@ -83,13 +83,40 @@ async function formatSearch(agent: AgentConfig, query: string, board?: AgentBoar
 function helpText(agent: AgentConfig): string {
   const clients = (agent.boards ?? []).map((b) => `• ${b.label}`).join("\n") || "(nenhum cliente cadastrado)";
   return (
-    `Comandos que eu entendo:\n\n` +
-    `*status* — resumo de atrasados de todos os clientes\n` +
-    `*status <cliente>* — só desse cliente\n` +
-    `*buscar <termo>* — procura card pelo nome\n` +
-    `*clientes* — lista quem eu acompanho\n\n` +
+    `Não entendi — algumas formas que eu reconheço:\n\n` +
+    `• "quais demandas estão atrasadas" / "status" — resumo de atrasados\n` +
+    `• "tem algum card sobre <assunto>" / "buscar <termo>" — procura pelo nome\n` +
+    `• "quais clientes vocês acompanham" — lista os boards\n\n` +
     `Clientes atuais:\n${clients}`
   );
+}
+
+// ─── DETECÇÃO DE INTENÇÃO POR PALAVRA-CHAVE (sem IA) ──────────────
+// Não é NLU de verdade — procura gatilhos conhecidos em qualquer parte da frase.
+// Cobre bastante coisa em português natural, mas tem limite: frases muito fora
+// do padrão caem no texto de ajuda. Pra expandir, é só adicionar mais gatilhos aqui.
+const STATUS_TRIGGERS = ["atrasad", "vencid", "pendente", "status", "andamento", "travad", "parad", "em dia", "atraso"];
+const CLIENTS_TRIGGERS = ["quais cliente", "quais board", "que cliente", "clientes voce", "clientes vc", "quem voce acompanha", "quem vc acompanha", "lista de cliente"];
+const SEARCH_TRIGGERS = [
+  "busca", "buscar", "procura", "procurar",
+  "tem algum", "tem alguma", "tem algo", "tem card",
+  "existe algum", "existe alguma",
+  "cade o", "cade a", "onde esta", "onde ta",
+  "algum card sobre", "alguma coisa sobre", "algo sobre",
+];
+
+function extractSearchQuery(text: string): string {
+  let q = text;
+  const stripPatterns = [
+    /tem\s+(algum|alguma|algo)(\s+card)?(\s+(sobre|com|de|da|do))?/gi,
+    /existe\s+(algum|alguma)(\s+card)?(\s+(sobre|com|de|da|do))?/gi,
+    /(busca|buscar|procura|procurar)(\s+(o|a|por))?/gi,
+    /cad[eê]\s+(o|a)/gi,
+    /onde\s+(esta|ta)/gi,
+    /algo\s+sobre/gi,
+  ];
+  for (const p of stripPatterns) q = q.replace(p, " ");
+  return q.replace(/[?!.]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 export async function handleCommand(agent: AgentConfig, text: string): Promise<string> {
@@ -100,18 +127,18 @@ export async function handleCommand(agent: AgentConfig, text: string): Promise<s
     return "Ainda não tenho nenhum board do Trello configurado pra consultar.";
   }
 
-  if (n === "clientes" || n === "boards") {
+  if (n === "clientes" || n === "boards" || CLIENTS_TRIGGERS.some((k) => n.includes(k))) {
     return `Clientes que acompanho:\n\n${boards.map((b) => `• ${b.label}`).join("\n")}`;
   }
 
-  if (n.startsWith("buscar") || n.startsWith("procurar")) {
-    const query = text.replace(/^\s*(buscar|procurar)\s*/i, "").trim();
-    if (!query) return "Manda assim: *buscar <termo>* (ex.: buscar vitamina d)";
+  if (SEARCH_TRIGGERS.some((k) => n.includes(k))) {
+    const query = extractSearchQuery(text);
+    if (!query) return 'Manda assim: "buscar <termo>" (ex.: buscar vitamina d)';
     const board = findBoard(agent, text);
     return formatSearch(agent, query, board);
   }
 
-  if (n.startsWith("status") || n.includes("atrasad")) {
+  if (STATUS_TRIGGERS.some((k) => n.includes(k))) {
     const board = findBoard(agent, text);
     if (board) return formatBoardStatus(agent, board);
     const parts = await Promise.all(boards.map((b) => formatBoardStatus(agent, b)));
