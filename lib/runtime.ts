@@ -22,9 +22,9 @@ function trelloCreds(agent: AgentConfig): TrelloCreds {
   };
 }
 
+// Vem pronto do agents/index.ts, extraído do texto do cérebro (não é mais coluna
+// nem env var — editar o cérebro no painel já muda quem recebe alerta).
 function managementPhones(agent: AgentConfig): string[] {
-  const fromEnv = getAgentEnv(agent.id, "MANAGEMENT_PHONES");
-  if (fromEnv) return fromEnv.split(",").map((p) => p.trim()).filter(Boolean);
   return agent.managementPhones ?? [];
 }
 

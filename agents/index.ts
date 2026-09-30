@@ -33,7 +33,6 @@ interface DbAgent {
   name: string;
   enabled: boolean;
   claude_model: string | null;
-  management_phones: string[];
 }
 
 interface DbBoardWithClient {
@@ -42,13 +41,31 @@ interface DbBoardWithClient {
   clients: { id: string; label: string } | null; // embed via FK (boards.client_id -> clients.id)
 }
 
+// Telefones de gestão não vêm mais de coluna nenhuma — são extraídos direto do
+// texto do cérebro (ex.: "- Alana Miranda — 5511966477472"). Editar o cérebro no
+// painel já edita quem recebe alerta, sem precisar de tabela/campo separado.
+function extractPhonesFromBrain(content: string): string[] {
+  const matches = content.match(/\b55\d{10,11}\b/g) ?? [];
+  return [...new Set(matches)];
+}
+
+async function fetchBrainContent(agentId: string): Promise<string> {
+  const rows = await sbGet<{ content: string }[]>(
+    `/brains?agent_id=eq.${encodeURIComponent(agentId)}&select=content`
+  );
+  return rows[0]?.content ?? "";
+}
+
 async function buildAgentConfig(dbAgent: DbAgent): Promise<AgentConfig> {
   // boards.agent_id liga direto ao agente; o embed `clients(...)` traz o label do
   // cliente numa query só (cliente pode ser acompanhado por mais de um agente do
   // mesmo tenant, então o vínculo relevante aqui é sempre por board, não por cliente).
-  const boardRows = await sbGet<DbBoardWithClient[]>(
-    `/boards?agent_id=eq.${encodeURIComponent(dbAgent.id)}&select=trello_board_id,monitored_lists,clients(id,label)`
-  );
+  const [boardRows, brainContent] = await Promise.all([
+    sbGet<DbBoardWithClient[]>(
+      `/boards?agent_id=eq.${encodeURIComponent(dbAgent.id)}&select=trello_board_id,monitored_lists,clients(id,label)`
+    ),
+    fetchBrainContent(dbAgent.id),
+  ]);
 
   const boards: AgentBoard[] = boardRows
     .filter((b): b is DbBoardWithClient & { clients: { id: string; label: string } } => b.clients !== null)
@@ -63,7 +80,7 @@ async function buildAgentConfig(dbAgent: DbAgent): Promise<AgentConfig> {
     id: dbAgent.id,
     name: dbAgent.name,
     boards,
-    managementPhones: dbAgent.management_phones ?? [],
+    managementPhones: extractPhonesFromBrain(brainContent),
     claudeModel: dbAgent.claude_model ?? undefined,
     enabled: dbAgent.enabled,
   };
@@ -86,8 +103,5 @@ export async function listEnabledAgents(): Promise<AgentConfig[]> {
 }
 
 export async function loadBrain(agent: AgentConfig): Promise<string> {
-  const rows = await sbGet<{ content: string }[]>(
-    `/brains?agent_id=eq.${encodeURIComponent(agent.id)}&select=content`
-  );
-  return rows[0]?.content ?? "";
+  return fetchBrainContent(agent.id);
 }

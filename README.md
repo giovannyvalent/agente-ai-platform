@@ -77,8 +77,10 @@ insert into public.boards (client_id, trello_board_id) values ('clinica-x', '<id
 
 ## Como criar um agente novo (tipo de trabalho novo)
 
-1. `insert into public.agents (id, name, management_phones) values (...)`
-2. `insert into public.brains (agent_id, content) values (...)` com as regras iniciais
+1. `insert into public.agents (id, name, tenant_id) values (...)`
+2. `insert into public.brains (agent_id, content) values (...)` com as regras iniciais —
+   inclua os telefones de quem recebe alerta no próprio texto (são extraídos de lá,
+   não existe coluna/campo separado pra isso)
 3. Configure as env vars na Vercel com o prefixo do novo id (ver `.env.example`):
    `<ID>_ZAPI_INSTANCE_ID`, `<ID>_ZAPI_TOKEN`, `<ID>_ZAPI_CLIENT_TOKEN` — `TRELLO_API_KEY`/
    `TRELLO_API_TOKEN` só precisam de override se esse agente usar uma conta Trello diferente
