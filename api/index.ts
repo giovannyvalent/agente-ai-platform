@@ -36,13 +36,15 @@ app.post("/api/webhook/whatsapp/:agentId", async (req: Request, res: Response) =
     return;
   }
 
-  res.status(200).json({ ok: true }); // responde rápido; processamento segue em background
-
+  // Aguarda processar antes de responder — em serverless não há garantia de que o
+  // código após res.json() continue rodando depois da resposta ser enviada.
   try {
     await handleIncomingWhatsApp(agent, payload);
   } catch (err) {
     console.error(`[${agent.id}] erro no webhook WhatsApp:`, (err as Error).message);
   }
+
+  res.status(200).json({ ok: true });
 });
 
 // ─── TRELLO — um webhook por agente ───────────────────────────────
@@ -53,14 +55,14 @@ app.head("/api/webhook/trello/:agentId", (_req, res) => res.status(200).end());
 app.get("/api/webhook/trello/:agentId", (_req, res) => res.status(200).end());
 app.post("/api/webhook/trello/:agentId", async (req: Request, res: Response) => {
   const agent = getAgent(req.params.agentId as string);
-  res.status(200).json({ ok: true }); // Trello exige resposta rápida (<10s)
-  if (!agent) return;
-
-  try {
-    await handleIncomingTrelloEvent(agent, req.body);
-  } catch (err) {
-    console.error(`[${agent.id}] erro no webhook Trello:`, (err as Error).message);
+  if (agent) {
+    try {
+      await handleIncomingTrelloEvent(agent, req.body);
+    } catch (err) {
+      console.error(`[${agent.id}] erro no webhook Trello:`, (err as Error).message);
+    }
   }
+  res.status(200).json({ ok: true }); // Trello exige resposta rápida (<10s) — nossas chamadas são leves
 });
 
 // ─── CRON — roda o ciclo de monitoramento de todos os agentes ativos ──
