@@ -36,36 +36,28 @@ interface DbAgent {
   management_phones: string[];
 }
 
-interface DbClient {
-  id: string;
-  agent_id: string;
-  label: string;
-}
-
-interface DbBoard {
-  client_id: string;
+interface DbBoardWithClient {
   trello_board_id: string;
   monitored_lists: string[];
+  clients: { id: string; label: string } | null; // embed via FK (boards.client_id -> clients.id)
 }
 
 async function buildAgentConfig(dbAgent: DbAgent): Promise<AgentConfig> {
-  const clients = await sbGet<DbClient[]>(`/clients?agent_id=eq.${encodeURIComponent(dbAgent.id)}&select=*`);
+  // boards.agent_id liga direto ao agente; o embed `clients(...)` traz o label do
+  // cliente numa query só (cliente pode ser acompanhado por mais de um agente do
+  // mesmo tenant, então o vínculo relevante aqui é sempre por board, não por cliente).
+  const boardRows = await sbGet<DbBoardWithClient[]>(
+    `/boards?agent_id=eq.${encodeURIComponent(dbAgent.id)}&select=trello_board_id,monitored_lists,clients(id,label)`
+  );
 
-  let boards: AgentBoard[] = [];
-  if (clients.length > 0) {
-    const clientIds = clients.map((c) => c.id).join(",");
-    const boardRows = await sbGet<DbBoard[]>(`/boards?client_id=in.(${clientIds})&select=*`);
-    const clientById = new Map(clients.map((c) => [c.id, c]));
-    boards = boardRows.map((b) => {
-      const client = clientById.get(b.client_id)!;
-      return {
-        id: client.id,
-        label: client.label,
-        trelloBoardId: b.trello_board_id,
-        monitoredLists: b.monitored_lists ?? [],
-      };
-    });
-  }
+  const boards: AgentBoard[] = boardRows
+    .filter((b): b is DbBoardWithClient & { clients: { id: string; label: string } } => b.clients !== null)
+    .map((b) => ({
+      id: b.clients.id,
+      label: b.clients.label,
+      trelloBoardId: b.trello_board_id,
+      monitoredLists: b.monitored_lists ?? [],
+    }));
 
   return {
     id: dbAgent.id,
