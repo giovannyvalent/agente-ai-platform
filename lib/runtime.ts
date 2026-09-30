@@ -28,6 +28,19 @@ function managementPhones(agent: AgentConfig): string[] {
   return agent.managementPhones ?? [];
 }
 
+function onlyDigits(phone: string): string {
+  return phone.replace(/\D/g, "");
+}
+
+// O número do WhatsApp do agente costuma ser o mesmo número "real" do negócio —
+// clientes de verdade mandam mensagem ali pro dia a dia. O bot só pode responder
+// a quem está na lista de gestão; qualquer outro remetente é ignorado em silêncio
+// (nada de responder cliente com menu/erro de comando não reconhecido).
+function isAllowedSender(agent: AgentConfig, senderPhone: string): boolean {
+  const allowed = managementPhones(agent).map(onlyDigits);
+  return allowed.includes(onlyDigits(senderPhone));
+}
+
 // ─── WHATSAPP — mensagem recebida ─────────────────────────────────
 // Sem IA por enquanto (decisão explícita) — responde por comando fixo, consultando
 // o Trello de verdade. Ver lib/commands.ts. Quando o Claude for ativado, isso pode
@@ -35,9 +48,13 @@ function managementPhones(agent: AgentConfig): string[] {
 export async function handleIncomingWhatsApp(agent: AgentConfig, payload: ZApiPayload): Promise<void> {
   if (!isValidIncoming(payload)) return;
 
-  const text = extractText(payload)!;
   const replyTo = payload.participantPhone ?? payload.phone;
+  if (!isAllowedSender(agent, replyTo)) {
+    console.log(`[${agent.id}] mensagem ignorada — remetente fora da lista de gestão:`, replyTo);
+    return;
+  }
 
+  const text = extractText(payload)!;
   const reply = await handleCommand(agent, text);
 
   await sendTextMessage(zapiCreds(agent), replyTo, reply);
