@@ -19,8 +19,6 @@ export interface AgentConfig {
   id: string;
   /** Nome de exibição, usado nas mensagens enviadas */
   name: string;
-  /** Caminho do arquivo de conhecimento, relativo à pasta do próprio agente (agents/<id>/) */
-  brainFile: string;
   /** Boards do Trello monitorados por este agente (pode ficar vazio se o agente só conversa) */
   boards?: AgentBoard[];
   /** Telefones da gestão que recebem alertas, caso não configurados via env (fallback) */

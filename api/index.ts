@@ -24,7 +24,7 @@ function isDuplicate(key: string): boolean {
 // Na Z-API de cada instância, configure a URL de webhook como:
 // https://SEU-DEPLOY.vercel.app/api/webhook/whatsapp/<agentId>
 app.post("/api/webhook/whatsapp/:agentId", async (req: Request, res: Response) => {
-  const agent = getAgent(req.params.agentId as string);
+  const agent = await getAgent(req.params.agentId as string);
   if (!agent) {
     res.status(404).json({ ok: false, error: "agente não encontrado" });
     return;
@@ -54,7 +54,7 @@ app.post("/api/webhook/whatsapp/:agentId", async (req: Request, res: Response) =
 app.head("/api/webhook/trello/:agentId", (_req, res) => res.status(200).end());
 app.get("/api/webhook/trello/:agentId", (_req, res) => res.status(200).end());
 app.post("/api/webhook/trello/:agentId", async (req: Request, res: Response) => {
-  const agent = getAgent(req.params.agentId as string);
+  const agent = await getAgent(req.params.agentId as string);
   if (agent) {
     try {
       await handleIncomingTrelloEvent(agent, req.body);
@@ -72,7 +72,7 @@ app.get("/api/cron/monitor", async (req: Request, res: Response) => {
     return;
   }
 
-  const agents = listEnabledAgents();
+  const agents = await listEnabledAgents();
   const results = await Promise.allSettled(agents.map((agent) => runMonitorCycle(agent)));
   results.forEach((r, i) => {
     if (r.status === "rejected") console.error(`[Cron] falha em ${agents[i].id}:`, (r.reason as Error).message);
@@ -82,11 +82,12 @@ app.get("/api/cron/monitor", async (req: Request, res: Response) => {
 });
 
 // ─── HEALTH ────────────────────────────────────────────────────────
-app.get("/api/health", (_req: Request, res: Response) => {
+app.get("/api/health", async (_req: Request, res: Response) => {
+  const agents = await listEnabledAgents();
   res.status(200).json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    agents: listEnabledAgents().map((a) => a.id),
+    agents: agents.map((a) => a.id),
   });
 });
 
