@@ -105,6 +105,21 @@ export function Login() {
             </Button>
           </form>
 
+          <div className="mt-7 flex items-center gap-3 text-xs text-steel/70">
+            <div className="h-px flex-1 bg-white/10" />
+            Ou continue com
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Button variant="secondary" type="button" disabled className="justify-center">
+              Google
+            </Button>
+            <Button variant="secondary" type="button" disabled className="justify-center">
+              Microsoft
+            </Button>
+          </div>
+
           <p className="mt-8 text-center text-sm text-steel">
             Não tem uma conta? <span className="text-ivory">Fale com o time.</span>
           </p>

@@ -1,12 +1,13 @@
 import { ReactNode, useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutGrid, Brain, Bot, BarChart3, Settings, Menu, X, LogOut } from "lucide-react";
+import { LayoutGrid, Bot, BarChart3, Settings, Menu, X, LogOut } from "lucide-react";
 import { Logo } from "./Logo";
 import { supabase } from "../lib/supabase";
 
+// "Regras do cérebro" não é item de sidebar — é a tela de detalhe de um agente
+// específico (acessada a partir de Visão geral / Agentes), como na referência.
 const nav = [
   { to: "/dashboard", label: "Visão geral", icon: LayoutGrid, end: true },
-  { to: "/dashboard/regras-do-cerebro", label: "Regras do cérebro", icon: Brain },
   { to: "/dashboard/agentes", label: "Agentes", icon: Bot },
   { to: "/dashboard/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
@@ -33,6 +34,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   const username = email.split("@")[0];
+  const initials = username.slice(0, 2).toUpperCase() || "—";
 
   return (
     <div className="min-h-screen bg-venture-black flex">
@@ -59,9 +61,14 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="mt-auto pt-6 border-t border-white/[0.06] flex items-center justify-between px-2">
-          <div className="min-w-0">
-            <p className="text-ivory text-sm truncate">{username || "—"}</p>
-            <p className="text-steel text-xs">Empresa</p>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 shrink-0 rounded-full bg-electric-blue/15 text-electric-blue text-xs font-semibold flex items-center justify-center">
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <p className="text-ivory text-sm truncate capitalize">{username || "—"}</p>
+              <p className="text-steel text-xs">Empresa</p>
+            </div>
           </div>
           <button onClick={handleLogout} className="text-steel hover:text-ivory shrink-0" title="Sair">
             <LogOut size={16} />
