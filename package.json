@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "Plataforma de agentes de IA para WhatsApp (Z-API) integrados ao Trello — cada agente tem seu proprio 'cerebro' (base de conhecimento) e monitora tarefas para se comunicar com a gestao",
   "type": "module",
+  "workspaces": ["web"],
   "scripts": {
-    "build": "tsc"
+    "build": "tsc --noEmit && npm run build -w web"
   },
   "keywords": [],
   "author": "",

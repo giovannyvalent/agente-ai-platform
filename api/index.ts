@@ -2,17 +2,12 @@ import express, { Request, Response } from "express";
 import { getAgent, listEnabledAgents } from "../agents/index.js";
 import { handleIncomingWhatsApp, handleIncomingTrelloEvent, runMonitorCycle } from "../lib/runtime.js";
 import type { ZApiPayload } from "../lib/zapi.js";
-import { renderDashboardPage } from "../lib/dashboard-page.js";
 
 const app = express();
 app.use(express.json());
 
-// ─── DASHBOARD — login + edição do cérebro (por tenant, via Supabase Auth) ──
-app.get(["/", "/dashboard", "/login"], (_req: Request, res: Response) => {
-  const supabaseUrl = process.env.SUPABASE_URL ?? "";
-  const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
-  res.type("html").send(renderDashboardPage(supabaseUrl, publishableKey));
-});
+// Landing/login/dashboard agora são o frontend estático em web/ (build em dist/),
+// servido diretamente pela Vercel — ver vercel.json. Esta função só cuida de /api/*.
 
 // ─── DEDUPLICAÇÃO DE MENSAGENS (evita reprocessar retries da Z-API) ──
 const processedMsgIds = new Map<string, number>(); // `${agentId}:${messageId}` → timestamp
