@@ -1,5 +1,8 @@
 # Agente AI Platform
 
+> Deploy automático: todo push em `main` builda e sobe sozinho na Vercel.
+> Produção: https://agente-ai-platform.vercel.app
+
 Plataforma de agentes de IA para WhatsApp, integrados ao Trello, para monitorar tarefas
 e se comunicar com a gestão. Feita para ser **replicável**: uma empresa pode ter 1, 2 ou
 20 agentes rodando no mesmo deploy — cada um com seu próprio "cérebro" (base de
