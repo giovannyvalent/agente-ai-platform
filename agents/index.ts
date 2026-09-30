@@ -10,11 +10,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // arquivos dentro de funções serverless na Vercel). Para adicionar um agente
 // novo: copie agents/_template/, preencha, e importe + liste aqui.
 import templateAgent from "./_template/config.js";
-import draAlyssaAgent from "./dra-alyssa/config.js";
+import gestaoMarketingAgent from "./gestao-marketing/config.js";
 
 const ALL_AGENTS: AgentConfig[] = [
   templateAgent,
-  draAlyssaAgent,
+  gestaoMarketingAgent,
 ];
 
 const registry = new Map<string, AgentConfig>(ALL_AGENTS.map((a) => [a.id, a]));

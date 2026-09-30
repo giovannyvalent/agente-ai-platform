@@ -1,4 +1,4 @@
-import type { AgentConfig } from "./types.js";
+import type { AgentConfig, AgentBoard } from "./types.js";
 import { getAgentEnv } from "./env.js";
 import { sendTextMessage, isValidIncoming, extractText } from "./zapi.js";
 import type { ZApiCreds, ZApiPayload } from "./zapi.js";
@@ -57,51 +57,74 @@ export async function handleIncomingWhatsApp(agent: AgentConfig, payload: ZApiPa
 }
 
 // ─── TRELLO — evento recebido via webhook ─────────────────────────
+// Um agente pode ter vários boards; o webhook do Trello manda o id do board no
+// payload, então resolvemos qual AgentBoard corresponde antes de agir.
 export async function handleIncomingTrelloEvent(agent: AgentConfig, body: unknown): Promise<void> {
   const action = (body as { action?: Record<string, any> } | undefined)?.action;
   if (!action) return;
+
+  const boardId = action.data?.board?.id as string | undefined;
+  const board = agent.boards?.find((b) => b.trelloBoardId === boardId);
+  if (!board) {
+    console.log(`[${agent.id}] evento Trello de board não cadastrado:`, boardId);
+    return;
+  }
 
   const type = action.type as string;
   const cardName = action.data?.card?.name as string | undefined;
   const listName = (action.data?.listAfter?.name ?? action.data?.list?.name) as string | undefined;
 
-  console.log(`[${agent.id}] evento Trello:`, { type, cardName, listName });
+  console.log(`[${agent.id}] evento Trello [${board.label}]:`, { type, cardName, listName });
 
   // Placeholder — a regra de quando alertar deve vir do brain.md deste agente.
   // Exemplo simples: avisa a gestão quando um card muda de lista.
   if (type === "updateCard" && action.data?.listAfter) {
-    const msg = `📋 *[${agent.name}]* card *${cardName}* movido para *${listName}*`;
+    const msg = `📋 *[${board.label}]* card *${cardName}* movido para *${listName}*`;
     await Promise.all(
       managementPhones(agent).map((phone) => sendTextMessage(zapiCreds(agent), phone, msg))
     );
   }
 }
 
-// ─── CRON — ciclo de monitoramento do board do agente ─────────────
-export async function runMonitorCycle(agent: AgentConfig): Promise<void> {
-  if (!agent.trelloBoardId) return;
-
-  const tCreds = trelloCreds(agent);
+// ─── CRON — ciclo de monitoramento de todos os boards do agente ──
+async function checkBoardOverdue(tCreds: TrelloCreds, board: AgentBoard) {
   const [lists, cards] = await Promise.all([
-    getLists(tCreds, agent.trelloBoardId),
-    getBoardCards(tCreds, agent.trelloBoardId),
+    getLists(tCreds, board.trelloBoardId),
+    getBoardCards(tCreds, board.trelloBoardId),
   ]);
 
-  const allowedListIds = agent.monitoredLists?.length
-    ? new Set(lists.filter((l) => agent.monitoredLists!.includes(l.name)).map((l) => l.id))
+  const allowedListIds = board.monitoredLists?.length
+    ? new Set(lists.filter((l) => board.monitoredLists!.includes(l.name)).map((l) => l.id))
     : null;
 
-  const overdue = cards
-    .filter(isCardOverdue)
-    .filter((c) => !allowedListIds || allowedListIds.has(c.idList));
+  return cards.filter(isCardOverdue).filter((c) => !allowedListIds || allowedListIds.has(c.idList));
+}
 
-  if (overdue.length === 0) return;
+export async function runMonitorCycle(agent: AgentConfig): Promise<void> {
+  if (!agent.boards?.length) return;
 
-  const lines = overdue.map(
-    (c) => `• ${c.name} — venceu em ${new Date(c.due!).toLocaleDateString("pt-BR")}\n  ${c.shortUrl}`
+  const tCreds = trelloCreds(agent);
+  const results = await Promise.allSettled(
+    agent.boards.map(async (board) => ({ board, overdue: await checkBoardOverdue(tCreds, board) }))
   );
-  const digest = `🔴 *[${agent.name}] Cards atrasados* (${overdue.length})\n\n${lines.join("\n\n")}`;
 
+  const sections: string[] = [];
+  for (const r of results) {
+    if (r.status === "rejected") {
+      console.error(`[${agent.id}] falha ao checar board:`, (r.reason as Error).message);
+      continue;
+    }
+    const { board, overdue } = r.value;
+    if (overdue.length === 0) continue;
+    const lines = overdue.map(
+      (c) => `• ${c.name} — venceu em ${new Date(c.due!).toLocaleDateString("pt-BR")}\n  ${c.shortUrl}`
+    );
+    sections.push(`*${board.label}* (${overdue.length} atrasado${overdue.length > 1 ? "s" : ""})\n${lines.join("\n\n")}`);
+  }
+
+  if (sections.length === 0) return;
+
+  const digest = `🔴 *[${agent.name}] Cards atrasados*\n\n${sections.join("\n\n---\n\n")}`;
   const zCreds = zapiCreds(agent);
   await Promise.all(managementPhones(agent).map((phone) => sendTextMessage(zCreds, phone, digest)));
 }

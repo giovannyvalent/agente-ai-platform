@@ -8,6 +8,6 @@
     }
   },
   "crons": [
-    { "path": "/api/cron/monitor", "schedule": "0 */2 * * *" }
+    { "path": "/api/cron/monitor", "schedule": "0 12 * * *" }
   ]
 }
