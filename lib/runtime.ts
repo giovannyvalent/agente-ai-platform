@@ -5,6 +5,7 @@ import type { ZApiCreds, ZApiPayload } from "./zapi.js";
 import { getLists, getBoardCards, isCardOverdue } from "./trello.js";
 import type { TrelloCreds } from "./trello.js";
 import { handleCommand } from "./commands.js";
+import { logInteraction } from "./interactions.js";
 
 function zapiCreds(agent: AgentConfig): ZApiCreds {
   return {
@@ -55,9 +56,18 @@ export async function handleIncomingWhatsApp(agent: AgentConfig, payload: ZApiPa
   }
 
   const text = extractText(payload)!;
+  const startedAt = Date.now();
   const reply = await handleCommand(agent, text);
 
   await sendTextMessage(zapiCreds(agent), replyTo, reply);
+
+  logInteraction({
+    agentId: agent.id,
+    phone: replyTo,
+    messageIn: text,
+    messageOut: reply,
+    durationMs: Date.now() - startedAt,
+  }).catch(() => {});
 }
 
 // ─── TRELLO — evento recebido via webhook ─────────────────────────

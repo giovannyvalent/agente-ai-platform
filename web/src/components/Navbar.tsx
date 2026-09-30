@@ -39,7 +39,10 @@ export function Navbar() {
             </a>
           ))}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-5">
+          <Link to="/login" className="hidden md:block text-[0.9rem] text-steel hover:text-ivory transition-colors">
+            Entrar
+          </Link>
           <a href="#contato" className="hidden md:block">
             <Button size="sm">Falar com especialista</Button>
           </a>
@@ -66,6 +69,9 @@ export function Navbar() {
               {l.label}
             </a>
           ))}
+          <Link to="/login" onClick={() => setOpen(false)} className="text-ivory text-[0.95rem]">
+            Entrar
+          </Link>
           <a href="#contato" onClick={() => setOpen(false)}>
             <Button size="sm" className="w-full justify-center">
               Falar com especialista

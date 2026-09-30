@@ -2,7 +2,6 @@ import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { Logo } from "../components/Logo";
-import { AbstractVisual } from "../components/AbstractVisual";
 import { Button } from "../components/ui/Button";
 import { Input, Label } from "../components/ui/Input";
 import { supabase, EMAIL_SUFFIX } from "../lib/supabase";
@@ -127,9 +126,20 @@ export function Login() {
       </div>
 
       {/* DIREITA — visual */}
-      <div className="hidden lg:flex relative items-center justify-center overflow-hidden bg-graphite/40 border-l border-white/[0.06]">
-        <AbstractVisual className="absolute w-[520px] h-[520px] -right-24 -top-16" />
-        <div className="relative z-10 text-center px-12">
+      <div className="hidden lg:flex relative items-end justify-center overflow-hidden border-l border-white/[0.06]">
+        <img
+          src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&q=80"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(11,11,12,0.55) 0%, rgba(11,11,12,0.35) 40%, rgba(11,11,12,0.92) 100%)",
+          }}
+        />
+        <div className="relative z-10 text-center px-12 pb-16">
           <p className="text-3xl font-semibold text-ivory tracking-tight leading-snug text-balance">
             Inteligência aplicada
             <br /> à sua operação.
