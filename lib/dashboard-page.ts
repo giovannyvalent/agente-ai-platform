@@ -63,15 +63,17 @@ export function renderDashboardPage(supabaseUrl: string, publishableKey: string)
       <h1>Agente AI Platform</h1>
       <p class="sub">Entrar</p>
       <div class="card">
-        <label for="username">Usuário</label>
-        <input id="username" autocomplete="username" />
-        <div style="height:12px"></div>
-        <label for="password">Senha</label>
-        <input id="password" type="password" autocomplete="current-password" />
-        <div class="row">
-          <button id="btn-login">Entrar</button>
-        </div>
-        <div id="login-msg" class="msg"></div>
+        <form id="login-form">
+          <label for="username">Usuário</label>
+          <input id="username" autocomplete="username" />
+          <div style="height:12px"></div>
+          <label for="password">Senha</label>
+          <input id="password" type="password" autocomplete="current-password" />
+          <div class="row">
+            <button id="btn-login" type="submit">Entrar</button>
+          </div>
+          <div id="login-msg" class="msg"></div>
+        </form>
       </div>
     </div>
 
@@ -101,17 +103,30 @@ function showMsg(el, text, ok) {
   el.className = "msg " + (ok ? "ok" : "err");
 }
 
-document.getElementById("btn-login").addEventListener("click", async () => {
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("btn-login");
   const username = document.getElementById("username").value.trim().toLowerCase();
   const password = document.getElementById("password").value;
   if (!username || !password) return showMsg(loginMsg, "Preenche usuário e senha.", false);
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email: username + EMAIL_SUFFIX,
-    password,
-  });
-  if (error) return showMsg(loginMsg, "Usuário ou senha inválidos.", false);
-  await loadDashboard();
+  btn.disabled = true;
+  showMsg(loginMsg, "Entrando...", true);
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: username + EMAIL_SUFFIX,
+      password,
+    });
+    if (error) {
+      showMsg(loginMsg, "Usuário ou senha inválidos.", false);
+      return;
+    }
+    await loadDashboard();
+  } catch (err) {
+    showMsg(loginMsg, "Erro inesperado: " + (err && err.message ? err.message : err), false);
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 document.getElementById("btn-logout").addEventListener("click", async () => {
