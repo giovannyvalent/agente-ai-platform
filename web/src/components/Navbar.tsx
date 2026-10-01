@@ -28,7 +28,7 @@ export function Navbar() {
         scrolled || open ? "bg-venture-black/80 backdrop-blur-md border-b border-white/[0.06]" : "bg-transparent"
       }`}
     >
-      <nav className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-8 h-16">
+      <nav className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-8 h-20">
         <Link to="/">
           <Logo />
         </Link>
