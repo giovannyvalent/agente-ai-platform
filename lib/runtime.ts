@@ -7,7 +7,18 @@ import type { TrelloCreds } from "./trello.js";
 import { handleCommand } from "./commands.js";
 import { logInteraction } from "./interactions.js";
 
+// Credenciais cadastradas pelo tenant (tabela zapi_instances) têm prioridade;
+// env var por agente é o fallback (agentes antigos, configurados antes dessa
+// tabela existir, continuam funcionando sem precisar migrar).
 export function zapiCreds(agent: AgentConfig): ZApiCreds {
+  if (agent.zapi) {
+    return {
+      instanceId: agent.zapi.instanceId,
+      token: agent.zapi.token,
+      clientToken: agent.zapi.clientToken,
+      baseUrl: agent.zapi.baseUrl,
+    };
+  }
   return {
     instanceId: getAgentEnv(agent.id, "ZAPI_INSTANCE_ID"),
     token: getAgentEnv(agent.id, "ZAPI_TOKEN"),

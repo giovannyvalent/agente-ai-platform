@@ -23,6 +23,14 @@ export interface AgentConfig {
   boards?: AgentBoard[];
   /** Telefones da gestão que recebem alertas, caso não configurados via env (fallback) */
   managementPhones?: string[];
+  /** Credenciais Z-API cadastradas pelo tenant no painel (tabela zapi_instances). Se
+   * ausente, zapiCreds() em lib/runtime.ts cai pro fallback de env var por agente. */
+  zapi?: {
+    instanceId: string;
+    token: string;
+    clientToken?: string;
+    baseUrl?: string;
+  };
   /** Modelo Claude usado por este agente (opcional, padrão definido em lib/claude.ts) */
   claudeModel?: string;
   /** Precisa estar true para o agente rodar no cron e aparecer como ativo */

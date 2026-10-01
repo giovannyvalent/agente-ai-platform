@@ -404,3 +404,140 @@ CREATE POLICY "tenants_update" ON public.tenants
 -- Nome de exibicao correto do tenant da Anser
 UPDATE public.tenants SET name = 'Grupo Anser' WHERE id = 'anser';
 ```
+
+---
+
+## [2026-10-01] Instâncias Z-API por tenant + policy de INSERT em agents/brains
+
+```sql
+-- Credenciais Z-API deixam de depender só de env var (configurada por mim
+-- via Vercel) e passam a poder ser cadastradas pelo próprio tenant no painel,
+-- em Configurações. Um tenant pode ter mais de uma instância (ex.: um número
+-- por agente/departamento), e cada agente vincula a uma instância ao ser
+-- criado. Env var continua funcionando como fallback pros agentes antigos
+-- (AM, ANSER) até serem migrados pro banco também.
+
+CREATE TABLE IF NOT EXISTS public.zapi_instances (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id text NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  label text NOT NULL,
+  instance_id text NOT NULL,
+  token text NOT NULL,
+  client_token text,
+  base_url text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_zapi_instances_tenant_id ON public.zapi_instances(tenant_id);
+
+ALTER TABLE public.zapi_instances ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "zapi_instances_select" ON public.zapi_instances;
+CREATE POLICY "zapi_instances_select" ON public.zapi_instances
+  FOR SELECT USING (public.is_tenant_member(auth.uid(), tenant_id));
+
+DROP POLICY IF EXISTS "zapi_instances_insert" ON public.zapi_instances;
+CREATE POLICY "zapi_instances_insert" ON public.zapi_instances
+  FOR INSERT WITH CHECK (public.is_tenant_member(auth.uid(), tenant_id));
+
+DROP POLICY IF EXISTS "zapi_instances_update" ON public.zapi_instances;
+CREATE POLICY "zapi_instances_update" ON public.zapi_instances
+  FOR UPDATE USING (public.is_tenant_member(auth.uid(), tenant_id))
+  WITH CHECK (public.is_tenant_member(auth.uid(), tenant_id));
+
+DROP POLICY IF EXISTS "zapi_instances_delete" ON public.zapi_instances;
+CREATE POLICY "zapi_instances_delete" ON public.zapi_instances
+  FOR DELETE USING (public.is_tenant_member(auth.uid(), tenant_id));
+
+-- agents passa a poder linkar numa instância (nullable -- um agente pode
+-- existir ainda sem WhatsApp configurado, ou continuar usando env var).
+ALTER TABLE public.agents ADD COLUMN IF NOT EXISTS zapi_instance_id uuid REFERENCES public.zapi_instances(id) ON DELETE SET NULL;
+
+-- Faltava policy de INSERT em agents e brains -- até aqui só dava pra editar
+-- o que a migration/seed já tinha criado, nunca criar agente novo pelo painel.
+DROP POLICY IF EXISTS "agents_insert" ON public.agents;
+CREATE POLICY "agents_insert" ON public.agents
+  FOR INSERT WITH CHECK (public.is_tenant_member(auth.uid(), tenant_id));
+
+DROP POLICY IF EXISTS "brains_insert" ON public.brains;
+CREATE POLICY "brains_insert" ON public.brains
+  FOR INSERT WITH CHECK (public.is_tenant_member(auth.uid(), public.agent_tenant_id(agent_id)));
+```
+
+---
+
+## [2026-10-01] Integração genérica "API externa" (catálogo de rotas)
+
+```sql
+-- Integração genérica "API externa": o tenant cadastra a URL base + auth de
+-- uma API qualquer que queira consumir (Conta Azul, Nibo, ERP interno, etc.
+-- antes de termos um conector dedicado pra ela) e mapeia as rotas que importam,
+-- com uma descrição livre do que cada rota retorna. Por enquanto é só o
+-- catálogo/config (sem chamada automática ainda) -- fica pronto pra quando o
+-- agente ganhar a capacidade de usar isso como ferramenta.
+
+CREATE TABLE IF NOT EXISTS public.external_apis (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id text NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  base_url text NOT NULL,
+  auth_type text NOT NULL DEFAULT 'none', -- 'none' | 'bearer' | 'api_key' | 'basic'
+  auth_header text, -- nome do header quando auth_type = 'api_key' (ex.: 'X-API-Key')
+  auth_value text, -- token/chave/credencial (texto livre; formato depende do auth_type)
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.external_api_routes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  api_id uuid NOT NULL REFERENCES public.external_apis(id) ON DELETE CASCADE,
+  method text NOT NULL DEFAULT 'GET',
+  path text NOT NULL, -- ex. '/clientes/{id}/faturas'
+  label text NOT NULL, -- nome curto, ex. 'Listar faturas do cliente'
+  returns text NOT NULL DEFAULT '', -- descrição livre do que a rota retorna
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_external_apis_tenant_id ON public.external_apis(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_external_api_routes_api_id ON public.external_api_routes(api_id);
+
+CREATE OR REPLACE FUNCTION public.external_api_tenant_id(aid uuid)
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT tenant_id FROM public.external_apis WHERE id = aid;
+$$;
+
+ALTER TABLE public.external_apis ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.external_api_routes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "external_apis_select" ON public.external_apis;
+CREATE POLICY "external_apis_select" ON public.external_apis
+  FOR SELECT USING (public.is_tenant_member(auth.uid(), tenant_id));
+
+DROP POLICY IF EXISTS "external_apis_insert" ON public.external_apis;
+CREATE POLICY "external_apis_insert" ON public.external_apis
+  FOR INSERT WITH CHECK (public.is_tenant_member(auth.uid(), tenant_id));
+
+DROP POLICY IF EXISTS "external_apis_update" ON public.external_apis;
+CREATE POLICY "external_apis_update" ON public.external_apis
+  FOR UPDATE USING (public.is_tenant_member(auth.uid(), tenant_id))
+  WITH CHECK (public.is_tenant_member(auth.uid(), tenant_id));
+
+DROP POLICY IF EXISTS "external_apis_delete" ON public.external_apis;
+CREATE POLICY "external_apis_delete" ON public.external_apis
+  FOR DELETE USING (public.is_tenant_member(auth.uid(), tenant_id));
+
+DROP POLICY IF EXISTS "external_api_routes_select" ON public.external_api_routes;
+CREATE POLICY "external_api_routes_select" ON public.external_api_routes
+  FOR SELECT USING (public.is_tenant_member(auth.uid(), public.external_api_tenant_id(api_id)));
+
+DROP POLICY IF EXISTS "external_api_routes_insert" ON public.external_api_routes;
+CREATE POLICY "external_api_routes_insert" ON public.external_api_routes
+  FOR INSERT WITH CHECK (public.is_tenant_member(auth.uid(), public.external_api_tenant_id(api_id)));
+
+DROP POLICY IF EXISTS "external_api_routes_delete" ON public.external_api_routes;
+CREATE POLICY "external_api_routes_delete" ON public.external_api_routes
+  FOR DELETE USING (public.is_tenant_member(auth.uid(), public.external_api_tenant_id(api_id)));
+```

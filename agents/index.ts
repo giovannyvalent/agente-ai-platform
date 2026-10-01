@@ -28,11 +28,19 @@ async function sbGet<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+interface DbZapiInstance {
+  instance_id: string;
+  token: string;
+  client_token: string | null;
+  base_url: string | null;
+}
+
 interface DbAgent {
   id: string;
   name: string;
   enabled: boolean;
   claude_model: string | null;
+  zapi_instances: DbZapiInstance | null; // embed via FK (agents.zapi_instance_id -> zapi_instances.id)
 }
 
 interface DbBoardWithClient {
@@ -76,6 +84,15 @@ async function buildAgentConfig(dbAgent: DbAgent): Promise<AgentConfig> {
       monitoredLists: b.monitored_lists ?? [],
     }));
 
+  const zapi = dbAgent.zapi_instances
+    ? {
+        instanceId: dbAgent.zapi_instances.instance_id,
+        token: dbAgent.zapi_instances.token,
+        clientToken: dbAgent.zapi_instances.client_token ?? undefined,
+        baseUrl: dbAgent.zapi_instances.base_url ?? undefined,
+      }
+    : undefined;
+
   return {
     id: dbAgent.id,
     name: dbAgent.name,
@@ -83,17 +100,20 @@ async function buildAgentConfig(dbAgent: DbAgent): Promise<AgentConfig> {
     managementPhones: extractPhonesFromBrain(brainContent),
     claudeModel: dbAgent.claude_model ?? undefined,
     enabled: dbAgent.enabled,
+    zapi,
   };
 }
 
+const AGENT_SELECT = "*,zapi_instances(instance_id,token,client_token,base_url)";
+
 export async function getAgent(id: string): Promise<AgentConfig | undefined> {
-  const rows = await sbGet<DbAgent[]>(`/agents?id=eq.${encodeURIComponent(id)}&select=*`);
+  const rows = await sbGet<DbAgent[]>(`/agents?id=eq.${encodeURIComponent(id)}&select=${AGENT_SELECT}`);
   const dbAgent = rows[0];
   return dbAgent ? buildAgentConfig(dbAgent) : undefined;
 }
 
 export async function listAgents(): Promise<AgentConfig[]> {
-  const rows = await sbGet<DbAgent[]>(`/agents?select=*`);
+  const rows = await sbGet<DbAgent[]>(`/agents?select=${AGENT_SELECT}`);
   return Promise.all(rows.map(buildAgentConfig));
 }
 
