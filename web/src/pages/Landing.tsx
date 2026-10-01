@@ -14,7 +14,6 @@ const solutions = [
     eyebrow: "01",
     title: "Agentes de IA",
     desc: "Agentes desenhados para executar tarefas reais de vendas, atendimento, agenda, suporte, financeiro e operação.",
-    large: true,
   },
   {
     icon: Workflow,
@@ -59,7 +58,7 @@ export function Landing() {
       <Navbar />
 
       {/* HERO */}
-      <section className="relative">
+      <section className="relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.4] pointer-events-none"
           style={{
@@ -70,6 +69,20 @@ export function Landing() {
           }}
           aria-hidden="true"
         />
+        <div
+          className="absolute -top-1/3 left-1/4 w-[600px] h-[600px] rounded-full pointer-events-none animate-drift"
+          style={{ background: "radial-gradient(circle, rgba(61,90,254,0.16), transparent 70%)", filter: "blur(40px)" }}
+          aria-hidden="true"
+        />
+        <div
+          className="absolute top-0 left-0 right-0 h-px pointer-events-none overflow-hidden"
+          aria-hidden="true"
+        >
+          <div
+            className="h-full w-1/3 animate-scan-beam"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(61,90,254,0.8), transparent)" }}
+          />
+        </div>
 
         <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-24 grid lg:grid-cols-2 gap-16 items-center relative">
           <div className="animate-fade-up">
@@ -88,7 +101,7 @@ export function Landing() {
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-6">
               <a href="#contato">
-                <Button>
+                <Button className="animate-cta-glow rounded-full">
                   Falar com especialista <ArrowRight size={16} />
                 </Button>
               </a>
@@ -132,10 +145,10 @@ export function Landing() {
           </p>
         </Reveal>
 
-        <div className="mt-14 grid lg:grid-cols-3 gap-4">
-          {solutions.map(({ icon: Icon, eyebrow, title, desc, large }) => (
+        <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {solutions.map(({ icon: Icon, eyebrow, title, desc }) => (
             <Reveal key={title}>
-              <Card className={`p-7 h-full ${large ? "lg:row-span-1" : ""}`}>
+              <Card className="p-7 h-full overflow-hidden">
                 <div className="w-10 h-10 rounded-md bg-electric-blue/10 flex items-center justify-center mb-5">
                   <Icon size={19} className="text-electric-blue" strokeWidth={1.75} />
                 </div>
@@ -147,9 +160,9 @@ export function Landing() {
           ))}
 
           <Reveal>
-            <Card className="p-7 lg:col-span-3">
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                <div>
+            <Card className="p-7 overflow-hidden sm:col-span-2 lg:col-span-3">
+              <div className="flex flex-col md:flex-row gap-8 md:items-center">
+                <div className="md:flex-1 md:min-w-0">
                   <span className="text-steel text-xs">04</span>
                   <h3 className="text-ivory font-medium mt-1 mb-2">Engenharia aplicada</h3>
                   <p className="text-steel text-sm leading-relaxed">
@@ -157,11 +170,11 @@ export function Landing() {
                     integrações e comportamento para colocar IA em produção.
                   </p>
                 </div>
-                <div className="bg-venture-black rounded-[10px] border border-white/[0.06] p-4 font-mono text-[0.8rem] leading-relaxed">
-                  <div className="flex gap-3 text-steel"><span className="text-steel/50">01</span>context.load(company_memory)</div>
-                  <div className="flex gap-3 text-steel"><span className="text-steel/50">02</span>agent.reason(request)</div>
-                  <div className="flex gap-3 text-electric-blue"><span className="text-electric-blue/60">03</span>workflow.execute(action)</div>
-                  <div className="flex gap-3 text-steel"><span className="text-steel/50">04</span>metrics.observe(result)</div>
+                <div className="md:flex-1 md:min-w-0 bg-venture-black rounded-[10px] border border-white/[0.06] p-4 font-mono text-[0.8rem] leading-relaxed overflow-x-auto">
+                  <div className="flex gap-3 text-steel whitespace-nowrap"><span className="text-steel/50">01</span>context.load(company_memory)</div>
+                  <div className="flex gap-3 text-steel whitespace-nowrap"><span className="text-steel/50">02</span>agent.reason(request)</div>
+                  <div className="flex gap-3 text-electric-blue whitespace-nowrap"><span className="text-electric-blue/60">03</span>workflow.execute(action)</div>
+                  <div className="flex gap-3 text-steel whitespace-nowrap"><span className="text-steel/50">04</span>metrics.observe(result)</div>
                 </div>
               </div>
             </Card>
@@ -248,6 +261,16 @@ export function Landing() {
               ]}
             />
           </Card>
+        </Reveal>
+
+        <Reveal>
+          <div className="mt-10 flex justify-center">
+            <a href="#contato">
+              <Button variant="secondary">
+                Ver isso rodando na minha empresa <ArrowRight size={16} />
+              </Button>
+            </a>
+          </div>
         </Reveal>
       </section>
 

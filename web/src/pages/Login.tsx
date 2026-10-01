@@ -128,7 +128,7 @@ export function Login() {
       {/* DIREITA — visual */}
       <div className="hidden lg:flex relative items-end justify-center overflow-hidden border-l border-white/[0.06]">
         <img
-          src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&q=80"
+          src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=80"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />
