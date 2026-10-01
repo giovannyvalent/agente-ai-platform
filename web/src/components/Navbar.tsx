@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
@@ -12,22 +12,10 @@ const links = [
 ];
 
 export function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   return (
-    <header
-      className={`sticky top-0 z-50 transition-colors duration-300 ${
-        scrolled || open ? "bg-venture-black border-b border-white/[0.06]" : "bg-transparent"
-      }`}
-    >
+    <header className="sticky top-0 z-50 bg-venture-black border-b border-white/[0.06]">
       <nav className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-8 h-20">
         <Link to="/">
           <Logo />
