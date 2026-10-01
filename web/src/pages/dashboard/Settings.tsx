@@ -1,18 +1,57 @@
 import { useEffect, useState } from "react";
+import {
+  Smartphone,
+  Workflow,
+  Landmark,
+  Calculator,
+  Globe,
+  Eye,
+  EyeOff,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+} from "lucide-react";
 import { DashboardLayout } from "../../components/DashboardLayout";
 import { Card } from "../../components/ui/Card";
 import { Input, Label } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
 import { Switch } from "../../components/ui/Switch";
-import { useAgentsData } from "../../lib/useAgents";
+import { useAgentsData, ZapiInstanceRow } from "../../lib/useAgents";
 import { supabase } from "../../lib/supabase";
 
+interface ExternalApiRow {
+  id: string;
+  name: string;
+  base_url: string;
+  auth_type: "none" | "bearer" | "api_key" | "basic";
+  auth_header: string | null;
+  auth_value: string | null;
+}
+
+interface ExternalApiRouteRow {
+  id: string;
+  api_id: string;
+  method: string;
+  path: string;
+  label: string;
+  returns: string;
+}
+
+const AUTH_LABELS: Record<ExternalApiRow["auth_type"], string> = {
+  none: "Sem autenticação",
+  bearer: "Bearer token",
+  api_key: "Header de API key",
+  basic: "Basic auth (usuário:senha)",
+};
+
 // Integrações mostradas aqui refletem o que esse tenant realmente tem configurado
-// — não é uma lista fixa igual pra todo mundo. AM usa Trello, por exemplo; quando
-// a ANSER (ou outro tenant) ligar o Nibo, a linha dele aparece só pro tenant dela.
+// — não é uma lista fixa igual pra todo mundo. Z-API e API externa já são
+// auto-serviço (o próprio tenant cadastra); Conta Azul e Nibo ainda não têm
+// conector pronto, aparecem como roadmap até ganharem um.
 export function SettingsPage() {
-  const { tenantId, tenantName, clientsByAgent } = useAgentsData();
+  const { tenantId, tenantName, clientsByAgent, zapiInstances, agents, refetch } = useAgentsData();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -90,39 +129,503 @@ export function SettingsPage() {
         <Card className="mt-4 p-6">
           <h2 className="text-ivory font-medium mb-1">Integrações</h2>
           <p className="text-steel text-sm mb-4">
-            Conexões ativas pra essa empresa. Novas integrações aparecem aqui assim que forem ligadas.
+            Conexões disponíveis pra essa empresa. Z-API e API externa você mesmo cadastra abaixo; as demais
+            entram aqui assim que o conector for construído.
           </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-steel border-b border-white/[0.06]">
-                  <th className="pb-2 font-normal">Integração</th>
-                  <th className="pb-2 font-normal">Descrição</th>
-                  <th className="pb-2 font-normal">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-white/[0.04]">
-                  <td className="py-3 text-ivory">WhatsApp</td>
-                  <td className="py-3 text-steel">Canal operacional dos agentes</td>
-                  <td className="py-3">
-                    <Badge tone="success">Conectado</Badge>
-                  </td>
-                </tr>
-                {hasTrello && (
-                  <tr className="border-b border-white/[0.04]">
-                    <td className="py-3 text-ivory">Trello</td>
-                    <td className="py-3 text-steel">Boards de acompanhamento dos clientes</td>
-                    <td className="py-3">
-                      <Badge tone="success">Conectado</Badge>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <IntegrationStatus
+              icon={Smartphone}
+              name="Z-API (WhatsApp)"
+              desc="Canal operacional dos agentes"
+              status={zapiInstances.length > 0 ? `Conectado (${zapiInstances.length})` : "Não configurado"}
+              connected={zapiInstances.length > 0}
+            />
+            <IntegrationStatus
+              icon={Workflow}
+              name="Trello"
+              desc="Boards de acompanhamento dos clientes"
+              status={hasTrello ? "Conectado" : "Não configurado"}
+              connected={hasTrello}
+            />
+            <IntegrationStatus icon={Landmark} name="Conta Azul" desc="Financeiro e faturamento" status="Em breve" />
+            <IntegrationStatus icon={Calculator} name="Nibo" desc="Contabilidade e obrigações" status="Em breve" />
           </div>
         </Card>
+
+        <ZapiSection instances={zapiInstances} agents={agents} tenantId={tenantId} onChange={refetch} />
+        <ExternalApisSection tenantId={tenantId} />
       </div>
     </DashboardLayout>
+  );
+}
+
+function IntegrationStatus({
+  icon: Icon,
+  name,
+  desc,
+  status,
+  connected,
+}: {
+  icon: typeof Smartphone;
+  name: string;
+  desc: string;
+  status: string;
+  connected?: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-3 p-4 rounded-[10px] border border-white/[0.06] bg-venture-black">
+      <div className="w-9 h-9 shrink-0 rounded-md bg-electric-blue/10 flex items-center justify-center">
+        <Icon size={17} className="text-electric-blue" strokeWidth={1.75} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-ivory text-sm font-medium">{name}</p>
+        <p className="text-steel text-xs mt-0.5">{desc}</p>
+        <Badge tone={connected ? "success" : "neutral"} className="mt-2">
+          {status}
+        </Badge>
+      </div>
+    </div>
+  );
+}
+
+// ─── Z-API: instâncias cadastradas pelo tenant ────────────────────────
+function ZapiSection({
+  instances,
+  agents,
+  tenantId,
+  onChange,
+}: {
+  instances: ZapiInstanceRow[];
+  agents: { id: string; name: string; zapi_instance_id: string | null }[];
+  tenantId: string;
+  onChange: () => void;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [label, setLabel] = useState("");
+  const [instanceId, setInstanceId] = useState("");
+  const [token, setToken] = useState("");
+  const [clientToken, setClientToken] = useState("");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  function resetForm() {
+    setLabel("");
+    setInstanceId("");
+    setToken("");
+    setClientToken("");
+    setBaseUrl("");
+  }
+
+  async function handleCreate() {
+    if (!tenantId || !label.trim() || !instanceId.trim() || !token.trim()) return;
+    setCreating(true);
+    const { error } = await supabase.from("zapi_instances").insert({
+      tenant_id: tenantId,
+      label: label.trim(),
+      instance_id: instanceId.trim(),
+      token: token.trim(),
+      client_token: clientToken.trim() || null,
+      base_url: baseUrl.trim() || null,
+    });
+    setCreating(false);
+    if (!error) {
+      resetForm();
+      setShowForm(false);
+      onChange();
+    }
+  }
+
+  async function handleDelete(instance: ZapiInstanceRow) {
+    const usedBy = agents.filter((a) => a.zapi_instance_id === instance.id).map((a) => a.name);
+    const warning =
+      usedBy.length > 0
+        ? `Os agentes ${usedBy.join(", ")} usam essa instância e ficarão sem WhatsApp configurado. `
+        : "";
+    if (!window.confirm(`${warning}Remover a instância "${instance.label}"?`)) return;
+    setDeletingId(instance.id);
+    await supabase.from("zapi_instances").delete().eq("id", instance.id);
+    setDeletingId(null);
+    onChange();
+  }
+
+  return (
+    <Card className="mt-4 p-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-ivory font-medium mb-1">Instâncias Z-API</h2>
+          <p className="text-steel text-sm">
+            Credenciais do WhatsApp dos seus agentes. Pode ter mais de uma instância — um agente novo escolhe
+            qual usar na criação.
+          </p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={() => setShowForm((v) => !v)}>
+          <Plus size={14} /> Nova instância
+        </Button>
+      </div>
+
+      {instances.length > 0 && (
+        <div className="mt-4 flex flex-col gap-2">
+          {instances.map((inst) => (
+            <div
+              key={inst.id}
+              className="flex items-center justify-between gap-3 p-3 rounded-[10px] border border-white/[0.06] bg-venture-black"
+            >
+              <div className="min-w-0">
+                <p className="text-ivory text-sm font-medium">{inst.label}</p>
+                <p className="text-steel text-xs mt-0.5 font-mono">
+                  id: {inst.instance_id} · token: {revealed[inst.id] ? inst.token : "•".repeat(10)}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setRevealed((r) => ({ ...r, [inst.id]: !r[inst.id] }))}
+                  className="p-2 text-steel hover:text-ivory"
+                  aria-label="Mostrar/ocultar token"
+                >
+                  {revealed[inst.id] ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(inst)}
+                  disabled={deletingId === inst.id}
+                  className="p-2 text-steel hover:text-[#f87171]"
+                  aria-label="Remover instância"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {instances.length === 0 && !showForm && (
+        <p className="text-steel text-sm mt-4">Nenhuma instância cadastrada ainda.</p>
+      )}
+
+      {showForm && (
+        <div className="mt-4 p-4 rounded-[10px] border border-white/10 bg-venture-black">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Nome (uso interno)</Label>
+              <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex.: WhatsApp comercial" />
+            </div>
+            <div>
+              <Label>Instance ID</Label>
+              <Input value={instanceId} onChange={(e) => setInstanceId(e.target.value)} />
+            </div>
+            <div>
+              <Label>Token</Label>
+              <Input value={token} onChange={(e) => setToken(e.target.value)} />
+            </div>
+            <div>
+              <Label>Client-Token (opcional)</Label>
+              <Input value={clientToken} onChange={(e) => setClientToken(e.target.value)} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Base URL (opcional — padrão https://api.z-api.io)</Label>
+              <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.z-api.io" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mt-4">
+            <Button
+              size="sm"
+              onClick={handleCreate}
+              disabled={creating || !label.trim() || !instanceId.trim() || !token.trim()}
+            >
+              {creating ? "Salvando..." : "Salvar instância"}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowForm(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ─── API externa: catálogo de APIs + rotas mapeadas pelo tenant ──────
+function ExternalApisSection({ tenantId }: { tenantId: string }) {
+  const [apis, setApis] = useState<ExternalApiRow[]>([]);
+  const [routesByApi, setRoutesByApi] = useState<Record<string, ExternalApiRouteRow[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  const [apiName, setApiName] = useState("");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [authType, setAuthType] = useState<ExternalApiRow["auth_type"]>("none");
+  const [authHeader, setAuthHeader] = useState("");
+  const [authValue, setAuthValue] = useState("");
+  const [creatingApi, setCreatingApi] = useState(false);
+
+  const [routeForm, setRouteForm] = useState<Record<string, { method: string; path: string; label: string; returns: string }>>({});
+  const [creatingRoute, setCreatingRoute] = useState<string | null>(null);
+
+  async function load() {
+    const { data: apiRows } = await supabase
+      .from("external_apis")
+      .select("id,name,base_url,auth_type,auth_header,auth_value")
+      .order("name");
+    setApis(apiRows ?? []);
+
+    const apiIds = (apiRows ?? []).map((a) => a.id);
+    if (apiIds.length > 0) {
+      const { data: routeRows } = await supabase
+        .from("external_api_routes")
+        .select("id,api_id,method,path,label,returns")
+        .in("api_id", apiIds)
+        .order("created_at");
+      const byApi: Record<string, ExternalApiRouteRow[]> = {};
+      (routeRows ?? []).forEach((r) => {
+        byApi[r.api_id] = [...(byApi[r.api_id] ?? []), r];
+      });
+      setRoutesByApi(byApi);
+    } else {
+      setRoutesByApi({});
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  function resetApiForm() {
+    setApiName("");
+    setBaseUrl("");
+    setAuthType("none");
+    setAuthHeader("");
+    setAuthValue("");
+  }
+
+  async function handleCreateApi() {
+    if (!tenantId || !apiName.trim() || !baseUrl.trim()) return;
+    setCreatingApi(true);
+    const { error } = await supabase.from("external_apis").insert({
+      tenant_id: tenantId,
+      name: apiName.trim(),
+      base_url: baseUrl.trim(),
+      auth_type: authType,
+      auth_header: authType === "api_key" ? authHeader.trim() || null : null,
+      auth_value: authType === "none" ? null : authValue.trim() || null,
+    });
+    setCreatingApi(false);
+    if (!error) {
+      resetApiForm();
+      setShowForm(false);
+      load();
+    }
+  }
+
+  async function handleDeleteApi(api: ExternalApiRow) {
+    if (!window.confirm(`Remover "${api.name}" e todas as rotas mapeadas dela?`)) return;
+    await supabase.from("external_apis").delete().eq("id", api.id);
+    load();
+  }
+
+  async function handleCreateRoute(apiId: string) {
+    const form = routeForm[apiId];
+    if (!form?.path.trim() || !form?.label.trim()) return;
+    setCreatingRoute(apiId);
+    const { error } = await supabase.from("external_api_routes").insert({
+      api_id: apiId,
+      method: form.method || "GET",
+      path: form.path.trim(),
+      label: form.label.trim(),
+      returns: form.returns.trim(),
+    });
+    setCreatingRoute(null);
+    if (!error) {
+      setRouteForm((f) => ({ ...f, [apiId]: { method: "GET", path: "", label: "", returns: "" } }));
+      load();
+    }
+  }
+
+  async function handleDeleteRoute(routeId: string) {
+    await supabase.from("external_api_routes").delete().eq("id", routeId);
+    load();
+  }
+
+  return (
+    <Card className="mt-4 p-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-ivory font-medium mb-1">APIs externas</h2>
+          <p className="text-steel text-sm">
+            Cadastre qualquer API que queira consumir (ERP, financeiro, sistema interno) e mapeie as rotas que
+            importam, com o que cada uma retorna.
+          </p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={() => setShowForm((v) => !v)}>
+          <Plus size={14} /> Nova API
+        </Button>
+      </div>
+
+      {!loading && apis.length === 0 && !showForm && (
+        <p className="text-steel text-sm mt-4">Nenhuma API externa cadastrada ainda.</p>
+      )}
+
+      {showForm && (
+        <div className="mt-4 p-4 rounded-[10px] border border-white/10 bg-venture-black">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Nome</Label>
+              <Input value={apiName} onChange={(e) => setApiName(e.target.value)} placeholder="Ex.: ERP interno" />
+            </div>
+            <div>
+              <Label>Base URL</Label>
+              <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.exemplo.com" />
+            </div>
+            <div>
+              <Label>Autenticação</Label>
+              <select
+                value={authType}
+                onChange={(e) => setAuthType(e.target.value as ExternalApiRow["auth_type"])}
+                className="w-full bg-venture-black border border-white/10 rounded-[10px] px-3.5 py-2.5 text-[0.95rem] text-ivory"
+              >
+                {(Object.keys(AUTH_LABELS) as ExternalApiRow["auth_type"][]).map((t) => (
+                  <option key={t} value={t}>
+                    {AUTH_LABELS[t]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {authType === "api_key" && (
+              <div>
+                <Label>Nome do header</Label>
+                <Input value={authHeader} onChange={(e) => setAuthHeader(e.target.value)} placeholder="X-API-Key" />
+              </div>
+            )}
+            {authType !== "none" && (
+              <div className={authType === "api_key" ? "" : "sm:col-span-2"}>
+                <Label>{authType === "basic" ? "usuário:senha" : "Token / chave"}</Label>
+                <Input value={authValue} onChange={(e) => setAuthValue(e.target.value)} />
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-4">
+            <Button size="sm" onClick={handleCreateApi} disabled={creatingApi || !apiName.trim() || !baseUrl.trim()}>
+              {creatingApi ? "Salvando..." : "Salvar API"}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowForm(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-col gap-2">
+        {apis.map((api) => {
+          const routes = routesByApi[api.id] ?? [];
+          const isOpen = expanded[api.id] ?? false;
+          const form = routeForm[api.id] ?? { method: "GET", path: "", label: "", returns: "" };
+          return (
+            <div key={api.id} className="rounded-[10px] border border-white/[0.06] bg-venture-black overflow-hidden">
+              <div className="flex items-center justify-between gap-3 p-3">
+                <button
+                  type="button"
+                  onClick={() => setExpanded((e) => ({ ...e, [api.id]: !isOpen }))}
+                  className="flex items-center gap-2 min-w-0 flex-1 text-left"
+                >
+                  {isOpen ? (
+                    <ChevronUp size={15} className="text-steel shrink-0" />
+                  ) : (
+                    <ChevronDown size={15} className="text-steel shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-ivory text-sm font-medium">{api.name}</p>
+                    <p className="text-steel text-xs mt-0.5 font-mono truncate">{api.base_url}</p>
+                  </div>
+                </button>
+                <Badge tone="neutral" className="shrink-0">
+                  {routes.length} rota{routes.length === 1 ? "" : "s"}
+                </Badge>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteApi(api)}
+                  className="p-2 text-steel hover:text-[#f87171] shrink-0"
+                  aria-label="Remover API"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+
+              {isOpen && (
+                <div className="border-t border-white/[0.06] p-3">
+                  {routes.length > 0 && (
+                    <div className="flex flex-col gap-2 mb-3">
+                      {routes.map((r) => (
+                        <div key={r.id} className="flex items-start justify-between gap-3 p-2.5 rounded-[8px] bg-graphite/40">
+                          <div className="min-w-0">
+                            <p className="text-ivory text-sm">
+                              <span className="text-electric-blue font-mono text-xs mr-2">{r.method}</span>
+                              {r.label}
+                            </p>
+                            <p className="text-steel text-xs font-mono mt-0.5">{r.path}</p>
+                            {r.returns && <p className="text-steel text-xs mt-1">{r.returns}</p>}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRoute(r.id)}
+                            className="p-1.5 text-steel hover:text-[#f87171] shrink-0"
+                            aria-label="Remover rota"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="grid sm:grid-cols-[100px_1fr] gap-2">
+                    <select
+                      value={form.method}
+                      onChange={(e) => setRouteForm((f) => ({ ...f, [api.id]: { ...form, method: e.target.value } }))}
+                      className="bg-black border border-white/10 rounded-[10px] px-2 py-2 text-sm text-ivory"
+                    >
+                      {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                    <Input
+                      value={form.path}
+                      onChange={(e) => setRouteForm((f) => ({ ...f, [api.id]: { ...form, path: e.target.value } }))}
+                      placeholder="/clientes/{id}/faturas"
+                    />
+                  </div>
+                  <Input
+                    className="mt-2"
+                    value={form.label}
+                    onChange={(e) => setRouteForm((f) => ({ ...f, [api.id]: { ...form, label: e.target.value } }))}
+                    placeholder="Nome curto — ex.: Listar faturas do cliente"
+                  />
+                  <textarea
+                    value={form.returns}
+                    onChange={(e) => setRouteForm((f) => ({ ...f, [api.id]: { ...form, returns: e.target.value } }))}
+                    placeholder="O que essa rota retorna (texto livre)"
+                    rows={2}
+                    className="mt-2 w-full bg-black border border-white/10 rounded-[10px] px-3.5 py-2.5 text-sm text-ivory placeholder:text-steel/60 outline-none focus:border-electric-blue"
+                  />
+                  <Button
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => handleCreateRoute(api.id)}
+                    disabled={creatingRoute === api.id || !form.path.trim() || !form.label.trim()}
+                  >
+                    {creatingRoute === api.id ? "Salvando..." : "Adicionar rota"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
