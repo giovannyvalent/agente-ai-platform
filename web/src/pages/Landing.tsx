@@ -212,24 +212,32 @@ export function Landing() {
           ))}
 
           <StaggerItem className="sm:col-span-2 lg:col-span-3">
-            <Card className="p-7 sm:p-10 overflow-hidden h-full">
-              <div className="max-w-lg">
-                <span className="text-steel text-xs">04</span>
-                <h3 className="text-ivory font-medium text-xl mt-1 mb-2">Engenharia aplicada</h3>
-                <p className="text-steel text-sm leading-relaxed">
-                  Não entregamos apenas um bot. Modelamos regras, contexto, segurança,
-                  integrações e comportamento — um time de agentes trabalhando junto, em
-                  fluxo, para colocar IA em produção de verdade.
-                </p>
-              </div>
-              <div className="mt-8 bg-venture-black rounded-[10px] border border-white/[0.06] overflow-hidden">
-                <div className="flex items-center gap-1.5 px-4 h-9 border-b border-white/[0.06]">
-                  <span className="w-2 h-2 rounded-full bg-white/15" />
-                  <span className="w-2 h-2 rounded-full bg-white/15" />
-                  <span className="w-2 h-2 rounded-full bg-white/15" />
-                  <span className="text-steel/60 text-[0.7rem] ml-2 font-mono">pipeline.live</span>
+            <Card className="relative p-7 sm:p-10 overflow-hidden h-full">
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: "radial-gradient(ellipse 60% 70% at 85% 50%, rgba(61,90,254,0.12), transparent 65%)" }}
+                aria-hidden="true"
+              />
+              <div className="relative flex flex-col md:flex-row gap-10 md:items-center">
+                <div className="md:max-w-xs shrink-0">
+                  <span className="text-steel text-xs">04</span>
+                  <h3 className="text-ivory font-medium text-xl mt-1 mb-2">Engenharia aplicada</h3>
+                  <p className="text-steel text-sm leading-relaxed">
+                    Não entregamos apenas um bot. Modelamos regras, contexto, segurança,
+                    integrações e comportamento — um time de agentes trabalhando em ciclo
+                    contínuo para colocar IA em produção de verdade.
+                  </p>
+                  <div className="mt-5 flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-electric-blue opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-electric-blue" />
+                    </span>
+                    <span className="text-steel text-xs font-mono">ciclo rodando ao vivo</span>
+                  </div>
                 </div>
-                <AgentWorkflowViz />
+                <div className="flex-1 min-w-0 flex justify-center">
+                  <AgentWorkflowViz />
+                </div>
               </div>
             </Card>
           </StaggerItem>
@@ -361,15 +369,38 @@ export function Landing() {
         </div>
 
         <Reveal delay={0.15}>
-          <div className="mt-16 pt-12 border-t border-white/[0.06]">
-            <p className="text-electric-blue text-xs font-semibold tracking-[0.15em] mb-8">TIME VENTURE</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-2xl">
-              {team.map((person) => (
-                <motion.div key={person.name} whileHover={{ y: -4 }} className="flex flex-col items-center text-center">
-                  <TeamAvatar name={person.name} photo={person.photo} />
-                  <p className="text-ivory text-sm font-medium mt-3">{person.name}</p>
-                </motion.div>
-              ))}
+          <div className="relative mt-16 overflow-hidden rounded-lg border border-white/[0.07] bg-gradient-to-br from-graphite/70 to-venture-black p-8 sm:p-12">
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: "radial-gradient(ellipse 50% 80% at 15% 20%, rgba(61,90,254,0.14), transparent 60%)" }}
+              aria-hidden="true"
+            />
+            <div className="relative">
+              <p className="text-electric-blue text-xs font-semibold tracking-[0.15em] mb-3">TIME VENTURE</p>
+              <h3 className="text-ivory text-xl sm:text-2xl font-semibold tracking-tight max-w-md text-balance">
+                Por trás da tecnologia, um time que constrói de verdade.
+              </h3>
+
+              <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-10 max-w-2xl">
+                {team.map((person, i) => (
+                  <Reveal key={person.name} delay={0.05 * i}>
+                    <motion.div whileHover={{ y: -6 }} className="flex flex-col items-center text-center group">
+                      <div className="relative">
+                        <motion.div
+                          className="absolute -inset-1.5 rounded-full opacity-0 group-hover:opacity-100"
+                          style={{ background: "conic-gradient(from 0deg, #3D5AFE, transparent 65%, #3D5AFE)" }}
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                        />
+                        <div className="relative">
+                          <TeamAvatar name={person.name} photo={person.photo} />
+                        </div>
+                      </div>
+                      <p className="text-ivory text-sm font-medium mt-4">{person.name}</p>
+                    </motion.div>
+                  </Reveal>
+                ))}
+              </div>
             </div>
           </div>
         </Reveal>
