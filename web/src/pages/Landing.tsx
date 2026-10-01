@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Bot, Workflow, Plug, ArrowRight, Play } from "lucide-react";
 import { Navbar } from "../components/Navbar";
@@ -5,6 +6,7 @@ import { Logo } from "../components/Logo";
 import { HeroStage } from "../components/HeroStage";
 import { LogoMarquee } from "../components/LogoMarquee";
 import { SegmentsShowcase } from "../components/SegmentsShowcase";
+import { AgentWorkflowViz } from "../components/AgentWorkflowViz";
 import { CursorSpotlight } from "../components/CursorSpotlight";
 import { GrainOverlay } from "../components/GrainOverlay";
 import { TiltCard } from "../components/TiltCard";
@@ -34,6 +36,42 @@ const solutions = [
     desc: "CRM, ERP, agenda, APIs, bancos de dados e sistemas internos conversando em um mesmo fluxo.",
   },
 ];
+
+const team = [
+  { name: "Giovanny Valente", photo: "/team/giovanny-valente.jpg" },
+  { name: "Felipe Maues", photo: "/team/felipe-maues.jpg" },
+  { name: "Rubens Eduardo", photo: "/team/rubens-eduardo.jpg" },
+  { name: "João Tenório", photo: "/team/joao-tenorio.jpg" },
+];
+
+// Mostra a foto real quando existir em web/public/team/<arquivo>; até lá (ou se
+// o arquivo não carregar), cai pras iniciais sem quebrar o layout com ícone de
+// imagem ausente.
+function TeamAvatar({ name, photo }: { name: string; photo: string }) {
+  const [broken, setBroken] = useState(false);
+  const initials = name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-electric-blue/10 border border-electric-blue/25 flex items-center justify-center overflow-hidden">
+      {!broken ? (
+        <img
+          src={photo}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={() => setBroken(true)}
+        />
+      ) : (
+        <span className="text-electric-blue text-lg font-semibold">{initials}</span>
+      )}
+    </div>
+  );
+}
 
 const methodSteps = [
   { n: "01", title: "Diagnóstico", desc: "Mapeamos tarefas, gargalos, dados e sistemas." },
@@ -174,29 +212,24 @@ export function Landing() {
           ))}
 
           <StaggerItem className="sm:col-span-2 lg:col-span-3">
-            <Card className="p-7 sm:p-9 overflow-hidden h-full">
-              <div className="flex flex-col md:flex-row gap-10 md:items-center">
-                <div className="md:max-w-sm shrink-0">
-                  <span className="text-steel text-xs">04</span>
-                  <h3 className="text-ivory font-medium text-lg mt-1 mb-2">Engenharia aplicada</h3>
-                  <p className="text-steel text-sm leading-relaxed">
-                    Não entregamos apenas um bot. Modelamos regras, contexto, segurança,
-                    integrações e comportamento para colocar IA em produção.
-                  </p>
+            <Card className="p-7 sm:p-10 overflow-hidden h-full">
+              <div className="max-w-lg">
+                <span className="text-steel text-xs">04</span>
+                <h3 className="text-ivory font-medium text-xl mt-1 mb-2">Engenharia aplicada</h3>
+                <p className="text-steel text-sm leading-relaxed">
+                  Não entregamos apenas um bot. Modelamos regras, contexto, segurança,
+                  integrações e comportamento — um time de agentes trabalhando junto, em
+                  fluxo, para colocar IA em produção de verdade.
+                </p>
+              </div>
+              <div className="mt-8 bg-venture-black rounded-[10px] border border-white/[0.06] overflow-hidden">
+                <div className="flex items-center gap-1.5 px-4 h-9 border-b border-white/[0.06]">
+                  <span className="w-2 h-2 rounded-full bg-white/15" />
+                  <span className="w-2 h-2 rounded-full bg-white/15" />
+                  <span className="w-2 h-2 rounded-full bg-white/15" />
+                  <span className="text-steel/60 text-[0.7rem] ml-2 font-mono">pipeline.live</span>
                 </div>
-                <div className="flex-1 min-w-0 bg-venture-black rounded-[10px] border border-white/[0.06] overflow-hidden">
-                  <div className="flex items-center gap-1.5 px-4 h-9 border-b border-white/[0.06]">
-                    <span className="w-2 h-2 rounded-full bg-white/15" />
-                    <span className="w-2 h-2 rounded-full bg-white/15" />
-                    <span className="w-2 h-2 rounded-full bg-white/15" />
-                  </div>
-                  <div className="p-4 font-mono text-[0.78rem] leading-loose">
-                    <div className="flex gap-3 text-steel"><span className="text-steel/50 shrink-0">01</span><span className="truncate">context.load(memory)</span></div>
-                    <div className="flex gap-3 text-steel"><span className="text-steel/50 shrink-0">02</span><span className="truncate">agent.reason(request)</span></div>
-                    <div className="flex gap-3 text-electric-blue"><span className="text-electric-blue/60 shrink-0">03</span><span className="truncate">workflow.execute(action)</span></div>
-                    <div className="flex gap-3 text-steel"><span className="text-steel/50 shrink-0">04</span><span className="truncate">metrics.observe(result)</span></div>
-                  </div>
-                </div>
+                <AgentWorkflowViz />
               </div>
             </Card>
           </StaggerItem>
@@ -326,6 +359,20 @@ export function Landing() {
             </div>
           </Reveal>
         </div>
+
+        <Reveal delay={0.15}>
+          <div className="mt-16 pt-12 border-t border-white/[0.06]">
+            <p className="text-electric-blue text-xs font-semibold tracking-[0.15em] mb-8">TIME VENTURE</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-2xl">
+              {team.map((person) => (
+                <motion.div key={person.name} whileHover={{ y: -4 }} className="flex flex-col items-center text-center">
+                  <TeamAvatar name={person.name} photo={person.photo} />
+                  <p className="text-ivory text-sm font-medium mt-3">{person.name}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </Reveal>
       </section>
 
       {/* CTA FINAL */}
