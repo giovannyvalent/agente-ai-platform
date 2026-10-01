@@ -15,7 +15,7 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-venture-black border-b border-white/[0.06]">
+    <header className="sticky top-0 z-50 bg-black border-b border-white/[0.06]">
       <nav className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-8 h-20">
         <Link to="/">
           <Logo />
