@@ -59,7 +59,7 @@ function ConnectorRow({ i }: { i: number }) {
         animate={{ left: ["-30%", "110%"] }}
         transition={{ duration: 1.3, repeat: Infinity, delay: i * 0.4, ease: "easeInOut" }}
       />
-      <ChevronRight size={14} className="relative z-10 top-7 text-electric-blue/80 bg-venture-black rounded-full" />
+      <ChevronRight size={14} className="relative z-10 top-7 text-electric-blue/80 bg-black rounded-full" />
     </div>
   );
 }
@@ -74,7 +74,7 @@ function ConnectorCol({ i }: { i: number }) {
         animate={{ top: ["-30%", "110%"] }}
         transition={{ duration: 1.3, repeat: Infinity, delay: i * 0.4, ease: "easeInOut" }}
       />
-      <ChevronDown size={14} className="relative z-10 text-electric-blue/80 bg-venture-black rounded-full" />
+      <ChevronDown size={14} className="relative z-10 text-electric-blue/80 bg-black rounded-full" />
     </div>
   );
 }

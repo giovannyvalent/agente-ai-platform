@@ -89,7 +89,7 @@ const results = [
 
 export function Landing() {
   return (
-    <div className="bg-venture-black min-h-screen overflow-x-hidden">
+    <div className="bg-black min-h-screen overflow-x-hidden">
       <CursorSpotlight />
       <GrainOverlay />
       <Navbar />
@@ -368,7 +368,7 @@ export function Landing() {
           </Reveal>
 
           <Reveal delay={0.15}>
-            <div className="relative overflow-hidden rounded-lg border border-white/[0.07] bg-gradient-to-br from-graphite/70 to-venture-black p-8 sm:p-10">
+            <div className="relative overflow-hidden rounded-lg border border-white/[0.07] bg-gradient-to-br from-graphite/70 to-black p-8 sm:p-10">
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{ background: "radial-gradient(ellipse 60% 80% at 15% 20%, rgba(61,90,254,0.14), transparent 60%)" }}
