@@ -1,12 +1,17 @@
+import { motion } from "framer-motion";
 import { Bot, Workflow, Plug, ArrowRight, Play } from "lucide-react";
 import { Navbar } from "../components/Navbar";
 import { Logo } from "../components/Logo";
 import { HeroStage } from "../components/HeroStage";
 import { LogoMarquee } from "../components/LogoMarquee";
+import { CursorSpotlight } from "../components/CursorSpotlight";
+import { GrainOverlay } from "../components/GrainOverlay";
+import { TiltCard } from "../components/TiltCard";
+import { Reveal, StaggerGroup, StaggerItem } from "../components/Reveal";
 import { MultiLineChart } from "../components/ui/MultiLineChart";
+import { Counter } from "../components/ui/Counter";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
-import { useReveal } from "../lib/useReveal";
 
 const solutions = [
   {
@@ -37,27 +42,17 @@ const methodSteps = [
 ];
 
 const results = [
-  { value: "12.840", label: "interações automatizadas", note: "operação contínua" },
-  { value: "94,8%", label: "taxa de resolução", note: "sem intervenção humana" },
-  { value: "2,4s", label: "tempo de resposta", note: "média dos agentes" },
-  { value: "04", label: "agentes ativos", note: "monitorados em produção" },
+  { value: 12840, decimals: 0, label: "interações automatizadas", note: "operação contínua" },
+  { value: 94.8, decimals: 1, suffix: "%", label: "taxa de resolução", note: "sem intervenção humana" },
+  { value: 2.4, decimals: 1, suffix: "s", label: "tempo de resposta", note: "média dos agentes" },
+  { value: 4, decimals: 0, label: "agentes ativos", note: "monitorados em produção" },
 ];
-
-// IMPORTANTE: este <div> é quem vira o item de grid de verdade quando usado
-// dentro de um container `grid` — classes de col-span/row-span precisam ir
-// AQUI (via `className`), nunca só no filho (Card), senão não tem efeito.
-function Reveal({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const { ref, className: revealClassName } = useReveal<HTMLDivElement>();
-  return (
-    <div ref={ref} className={`${revealClassName} ${className}`}>
-      {children}
-    </div>
-  );
-}
 
 export function Landing() {
   return (
     <div className="bg-venture-black min-h-screen overflow-x-hidden">
+      <CursorSpotlight />
+      <GrainOverlay />
       <Navbar />
 
       {/* HERO */}
@@ -77,10 +72,7 @@ export function Landing() {
           style={{ background: "radial-gradient(circle, rgba(61,90,254,0.16), transparent 70%)", filter: "blur(40px)" }}
           aria-hidden="true"
         />
-        <div
-          className="absolute top-0 left-0 right-0 h-px pointer-events-none overflow-hidden"
-          aria-hidden="true"
-        >
+        <div className="absolute top-0 left-0 right-0 h-px pointer-events-none overflow-hidden" aria-hidden="true">
           <div
             className="h-full w-1/3 animate-scan-beam"
             style={{ background: "linear-gradient(90deg, transparent, rgba(61,90,254,0.8), transparent)" }}
@@ -88,7 +80,11 @@ export function Landing() {
         </div>
 
         <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-24 grid lg:grid-cols-2 gap-16 items-center relative">
-          <div className="animate-fade-up">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          >
             <div className="inline-flex items-center gap-2 text-electric-blue text-xs font-semibold tracking-[0.15em] mb-5">
               <span className="w-1.5 h-1.5 rounded-full bg-electric-blue animate-pulse-glow" />
               INTELIGÊNCIA APLICADA AO NEGÓCIO
@@ -104,11 +100,16 @@ export function Landing() {
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-6">
               <a href="#contato">
-                <Button className="animate-cta-glow rounded-full">
-                  Falar com especialista <ArrowRight size={16} />
-                </Button>
+                <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+                  <Button className="animate-cta-glow rounded-full">
+                    Falar com especialista <ArrowRight size={16} />
+                  </Button>
+                </motion.div>
               </a>
-              <a href="#solucoes" className="inline-flex items-center gap-2 text-ivory text-[0.95rem] hover:text-electric-blue transition-colors">
+              <a
+                href="#solucoes"
+                className="inline-flex items-center gap-2 text-ivory text-[0.95rem] hover:text-electric-blue transition-colors"
+              >
                 <Play size={16} /> Ver o que implementamos
               </a>
             </div>
@@ -125,11 +126,16 @@ export function Landing() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
-          <div className="mt-4 lg:mt-0 animate-fade-up" style={{ animationDelay: "0.15s" }}>
+          <motion.div
+            className="mt-4 lg:mt-0"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          >
             <HeroStage />
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -148,21 +154,23 @@ export function Landing() {
           </p>
         </Reveal>
 
-        <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StaggerGroup className="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {solutions.map(({ icon: Icon, eyebrow, title, desc }) => (
-            <Reveal key={title}>
-              <Card className="p-7 h-full overflow-hidden">
-                <div className="w-10 h-10 rounded-md bg-electric-blue/10 flex items-center justify-center mb-5">
-                  <Icon size={19} className="text-electric-blue" strokeWidth={1.75} />
-                </div>
-                <span className="text-steel text-xs">{eyebrow}</span>
-                <h3 className="text-ivory font-medium mt-1 mb-2">{title}</h3>
-                <p className="text-steel text-sm leading-relaxed">{desc}</p>
-              </Card>
-            </Reveal>
+            <StaggerItem key={title}>
+              <TiltCard>
+                <Card className="p-7 h-full overflow-hidden">
+                  <div className="w-10 h-10 rounded-md bg-electric-blue/10 flex items-center justify-center mb-5">
+                    <Icon size={19} className="text-electric-blue" strokeWidth={1.75} />
+                  </div>
+                  <span className="text-steel text-xs">{eyebrow}</span>
+                  <h3 className="text-ivory font-medium mt-1 mb-2">{title}</h3>
+                  <p className="text-steel text-sm leading-relaxed">{desc}</p>
+                </Card>
+              </TiltCard>
+            </StaggerItem>
           ))}
 
-          <Reveal className="sm:col-span-2 lg:col-span-3">
+          <StaggerItem className="sm:col-span-2 lg:col-span-3">
             <Card className="p-7 sm:p-9 overflow-hidden h-full">
               <div className="flex flex-col md:flex-row gap-10 md:items-center">
                 <div className="md:max-w-sm shrink-0">
@@ -188,8 +196,8 @@ export function Landing() {
                 </div>
               </div>
             </Card>
-          </Reveal>
-        </div>
+          </StaggerItem>
+        </StaggerGroup>
       </section>
 
       {/* MÉTODO */}
@@ -209,17 +217,17 @@ export function Landing() {
             </a>
           </Reveal>
 
-          <div className="grid sm:grid-cols-2 gap-8">
+          <StaggerGroup className="grid sm:grid-cols-2 gap-8">
             {methodSteps.map((s) => (
-              <Reveal key={s.n}>
+              <StaggerItem key={s.n}>
                 <div className="border-l-2 border-electric-blue/30 pl-5">
                   <b className="text-electric-blue text-sm">{s.n}</b>
                   <h3 className="text-ivory font-medium mt-1.5">{s.title}</h3>
                   <p className="text-steel text-sm mt-1.5 leading-relaxed">{s.desc}</p>
                 </div>
-              </Reveal>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGroup>
         </div>
       </section>
 
@@ -236,17 +244,19 @@ export function Landing() {
           </p>
         </Reveal>
 
-        <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-8">
+        <StaggerGroup className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-8">
           {results.map((r) => (
-            <Reveal key={r.label}>
+            <StaggerItem key={r.label}>
               <div>
-                <div className="text-4xl sm:text-5xl font-semibold text-ivory tracking-tight">{r.value}</div>
+                <div className="text-4xl sm:text-5xl font-semibold text-ivory tracking-tight">
+                  <Counter value={r.value} decimals={r.decimals} suffix={r.suffix ?? ""} />
+                </div>
                 <p className="mt-2 text-ivory/80 text-sm">{r.label}</p>
                 <p className="text-steel text-xs mt-1">{r.note}</p>
               </div>
-            </Reveal>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerGroup>
 
         <Reveal>
           <Card className="mt-14 p-6">
@@ -276,9 +286,11 @@ export function Landing() {
         <Reveal>
           <div className="mt-10 flex justify-center">
             <a href="#contato">
-              <Button variant="secondary">
-                Ver isso rodando na minha empresa <ArrowRight size={16} />
-              </Button>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                <Button variant="secondary">
+                  Ver isso rodando na minha empresa <ArrowRight size={16} />
+                </Button>
+              </motion.div>
             </a>
           </div>
         </Reveal>
@@ -292,7 +304,7 @@ export function Landing() {
               AI
             </div>
           </Reveal>
-          <Reveal>
+          <Reveal delay={0.1}>
             <p className="text-electric-blue text-xs font-semibold tracking-[0.15em] mb-3">VENTURE</p>
             <h2 className="text-3xl sm:text-4xl font-semibold text-ivory tracking-tight max-w-lg text-balance">
               Implementação de IA com visão de negócio.
@@ -317,24 +329,33 @@ export function Landing() {
       <section id="contato" className="max-w-7xl mx-auto px-6 lg:px-8 py-20">
         <Reveal>
           <div
-            className="rounded-lg border border-electric-blue/20 p-12 sm:p-16 text-center"
+            className="relative overflow-hidden rounded-lg border border-electric-blue/20 p-12 sm:p-16 text-center"
             style={{ background: "radial-gradient(circle at 50% 0%, rgba(61,90,254,0.14), rgba(26,27,30,0.4) 60%)" }}
           >
-            <p className="text-electric-blue text-xs font-semibold tracking-[0.15em] mb-3">
-              COMECE PELO PROBLEMA CERTO
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-semibold text-ivory tracking-tight text-balance">
-              Onde a IA pode gerar <span className="text-electric-blue">resultado na sua operação?</span>
-            </h2>
-            <p className="mt-4 text-steel max-w-md mx-auto">
-              Converse com a Venture e transforme um processo real em uma implementação de IA.
-            </p>
-            <div className="mt-8">
-              <a href="mailto:contato@venture.ai">
-                <Button>
-                  Falar com especialista <ArrowRight size={16} />
-                </Button>
-              </a>
+            <div
+              className="absolute -top-1/2 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full pointer-events-none animate-drift"
+              style={{ background: "radial-gradient(circle, rgba(61,90,254,0.12), transparent 70%)", filter: "blur(30px)" }}
+              aria-hidden="true"
+            />
+            <div className="relative">
+              <p className="text-electric-blue text-xs font-semibold tracking-[0.15em] mb-3">
+                COMECE PELO PROBLEMA CERTO
+              </p>
+              <h2 className="text-3xl sm:text-4xl font-semibold text-ivory tracking-tight text-balance">
+                Onde a IA pode gerar <span className="text-electric-blue">resultado na sua operação?</span>
+              </h2>
+              <p className="mt-4 text-steel max-w-md mx-auto">
+                Converse com a Venture e transforme um processo real em uma implementação de IA.
+              </p>
+              <div className="mt-8">
+                <a href="mailto:contato@venture.ai">
+                  <motion.div className="inline-block" whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+                    <Button className="animate-cta-glow rounded-full">
+                      Falar com especialista <ArrowRight size={16} />
+                    </Button>
+                  </motion.div>
+                </a>
+              </div>
             </div>
           </div>
         </Reveal>
