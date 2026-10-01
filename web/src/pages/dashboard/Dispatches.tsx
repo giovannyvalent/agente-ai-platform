@@ -119,7 +119,7 @@ export function Dispatches() {
             </div>
           </div>
           <div className="mt-4">
-            <Label>Regras (texto livre — define o que esse disparo faz)</Label>
+            <Label>Regras (texto livre: define o que esse disparo faz)</Label>
             <div className="flex flex-wrap gap-2 mb-2">
               {presets.map((p) => (
                 <button
@@ -140,7 +140,7 @@ export function Dispatches() {
               className="w-full min-h-[120px] bg-venture-black border border-white/10 rounded-[10px] px-4 py-3 text-[0.9rem] text-ivory font-mono"
             />
             <p className="text-steel text-xs mt-1.5">
-              As opções acima mudam de acordo com as integrações desse agente — todo agente tem{" "}
+              As opções acima mudam de acordo com as integrações desse agente: todo agente tem{" "}
               <code className="text-ivory">resumo_interacoes</code> (WhatsApp), e quem tem board vinculado
               também ganha <code className="text-ivory">monitor_boards</code> (Trello). Novos tipos entram
               aqui conforme forem construídos.

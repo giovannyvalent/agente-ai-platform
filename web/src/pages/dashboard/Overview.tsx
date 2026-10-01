@@ -152,7 +152,7 @@ export function Overview() {
             <div>
               <h2 className="text-ivory font-medium">Atividade por agente</h2>
               <p className="text-steel text-xs mt-0.5">
-                Mensagens processadas por dia, {RANGES[rangeIdx].label.toLowerCase()} — dado real.
+                Mensagens processadas por dia, {RANGES[rangeIdx].label.toLowerCase()} (dado real).
               </p>
             </div>
             <div className="flex items-center gap-3">

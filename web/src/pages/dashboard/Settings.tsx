@@ -81,7 +81,7 @@ export function SettingsPage() {
 
         <Card className="mt-4 p-6">
           <h2 className="text-ivory font-medium mb-1">Usuários</h2>
-          <p className="text-steel text-sm mb-4">Gerenciamento de acessos ao painel — em breve.</p>
+          <p className="text-steel text-sm mb-4">Gerenciamento de acessos ao painel. Em breve.</p>
           <Button variant="secondary" disabled>
             Convidar usuário
           </Button>

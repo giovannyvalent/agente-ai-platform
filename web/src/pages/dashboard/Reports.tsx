@@ -138,7 +138,7 @@ export function Reports() {
 
           {!loading && total === 0 && (
             <p className="text-steel text-xs mt-4">
-              Nenhuma interação registrada no período — os números aparecem conforme o WhatsApp for usado.
+              Nenhuma interação registrada no período. Os números aparecem conforme o WhatsApp for usado.
             </p>
           )}
         </Card>

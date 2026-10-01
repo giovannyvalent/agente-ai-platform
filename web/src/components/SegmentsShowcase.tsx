@@ -31,7 +31,7 @@ const segments = [
   {
     icon: Scale,
     segment: "Jurídico",
-    pain: "Prazos e processos espalhados entre planilhas, e-mail e WhatsApp — risco de perder prazo.",
+    pain: "Prazos e processos espalhados entre planilhas, e-mail e WhatsApp, com risco de perder prazo.",
     agent: "Agente de Acompanhamento Processual",
     desc: "Monitora andamentos, avisa prazos com antecedência e mantém o cliente informado sem esforço manual.",
   },
