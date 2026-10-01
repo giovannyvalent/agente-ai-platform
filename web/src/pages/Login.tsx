@@ -41,7 +41,7 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-venture-black">
+    <div className="min-h-screen grid lg:grid-cols-2 bg-black">
       {/* ESQUERDA — formulário */}
       <div className="flex flex-col justify-center px-6 sm:px-16 py-16">
         <div className="w-full max-w-sm mx-auto">
@@ -136,7 +136,7 @@ export function Login() {
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(11,11,12,0.55) 0%, rgba(11,11,12,0.35) 40%, rgba(11,11,12,0.92) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.92) 100%)",
           }}
         />
         <div className="relative z-10 text-center px-12 pb-16">
