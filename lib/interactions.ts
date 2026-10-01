@@ -33,3 +33,16 @@ export async function logInteraction(params: {
     console.error("[interactions] falha ao registrar:", (err as Error).message);
   }
 }
+
+export async function getRecentInteractions(
+  agentId: string,
+  sinceIso: string
+): Promise<{ duration_ms: number | null }[]> {
+  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) return [];
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/interactions?agent_id=eq.${encodeURIComponent(agentId)}&created_at=gte.${encodeURIComponent(sinceIso)}&select=duration_ms`,
+    { headers: { apikey: SUPABASE_SECRET_KEY, Authorization: `Bearer ${SUPABASE_SECRET_KEY}` } }
+  );
+  if (!res.ok) throw new Error(`Supabase error (interactions query): ${res.status} ${await res.text()}`);
+  return res.json();
+}

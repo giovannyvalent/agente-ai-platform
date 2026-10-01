@@ -25,17 +25,25 @@ export function Dispatches() {
   const [name, setName] = useState("");
   const [agentId, setAgentId] = useState("");
   const [rules, setRules] = useState("");
-  const [rulesTouched, setRulesTouched] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const selectedHasBoards = (clientsByAgent[agentId] ?? []).length > 0;
 
-  // Sugere a regra certa pro tipo de agente selecionado — só se o usuário
-  // ainda não mexeu no texto manualmente.
+  // Opções sugeridas mudam conforme a integração do agente selecionado —
+  // "resumo_interacoes" serve pra qualquer um (todo agente tem WhatsApp);
+  // "monitor_boards" só aparece pra quem tem board do Trello vinculado.
+  const presets = [
+    { label: "Resumo de interações (WhatsApp)", value: "tipo: resumo_interacoes\ndias: 1\n" },
+    ...(selectedHasBoards
+      ? [{ label: "Checagem de atrasados (Trello)", value: "tipo: monitor_boards\n" }]
+      : []),
+  ];
+
+  // Zera o texto ao trocar de agente (evita manter uma regra que não existe
+  // mais pra esse agente, ex.: monitor_boards pra um sem Trello).
   useEffect(() => {
-    if (rulesTouched) return;
-    setRules(selectedHasBoards ? "tipo: monitor_boards\n" : "");
-  }, [agentId, selectedHasBoards, rulesTouched]);
+    setRules("");
+  }, [agentId]);
 
   async function load() {
     const { data } = await supabase.from("dispatches").select("*").order("created_at", { ascending: false });
@@ -59,7 +67,7 @@ export function Dispatches() {
     setCreating(false);
     if (!error) {
       setName("");
-      setRulesTouched(false);
+      setRules("");
       load();
     }
   }
@@ -112,29 +120,31 @@ export function Dispatches() {
           </div>
           <div className="mt-4">
             <Label>Regras (texto livre — define o que esse disparo faz)</Label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {presets.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => setRules(p.value)}
+                  className="text-xs px-3 py-1.5 rounded-full border border-white/10 text-steel hover:text-ivory hover:border-electric-blue/50 hover:bg-electric-blue/10 transition-colors"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
             <textarea
               value={rules}
-              onChange={(e) => {
-                setRules(e.target.value);
-                setRulesTouched(true);
-              }}
-              placeholder={selectedHasBoards ? "tipo: monitor_boards" : "Esse agente ainda não tem nenhum tipo de disparo disponível."}
+              onChange={(e) => setRules(e.target.value)}
+              placeholder="Escolha uma opção acima ou escreva manualmente, ex.: tipo: monitor_boards"
               spellCheck={false}
               className="w-full min-h-[120px] bg-venture-black border border-white/10 rounded-[10px] px-4 py-3 text-[0.9rem] text-ivory font-mono"
             />
-            {selectedHasBoards ? (
-              <p className="text-steel text-xs mt-1.5">
-                Hoje só o tipo <code className="text-ivory">monitor_boards</code> está implementado (roda a
-                checagem de cards atrasados do Trello desse agente). Novos tipos entram conforme forem
-                construídos.
-              </p>
-            ) : (
-              <p className="text-steel text-xs mt-1.5">
-                Esse agente não tem board do Trello vinculado, então nenhum tipo de disparo pronto se
-                aplica a ele ainda. Novos tipos (ex.: relatório de janela) entram aqui conforme forem
-                construídos.
-              </p>
-            )}
+            <p className="text-steel text-xs mt-1.5">
+              As opções acima mudam de acordo com as integrações desse agente — todo agente tem{" "}
+              <code className="text-ivory">resumo_interacoes</code> (WhatsApp), e quem tem board vinculado
+              também ganha <code className="text-ivory">monitor_boards</code> (Trello). Novos tipos entram
+              aqui conforme forem construídos.
+            </p>
           </div>
           <Button className="mt-4" onClick={handleCreate} disabled={creating || !name.trim()}>
             {creating ? "Criando..." : "Criar disparo"}

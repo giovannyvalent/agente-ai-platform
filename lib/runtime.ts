@@ -7,7 +7,7 @@ import type { TrelloCreds } from "./trello.js";
 import { handleCommand } from "./commands.js";
 import { logInteraction } from "./interactions.js";
 
-function zapiCreds(agent: AgentConfig): ZApiCreds {
+export function zapiCreds(agent: AgentConfig): ZApiCreds {
   return {
     instanceId: getAgentEnv(agent.id, "ZAPI_INSTANCE_ID"),
     token: getAgentEnv(agent.id, "ZAPI_TOKEN"),
@@ -25,7 +25,7 @@ function trelloCreds(agent: AgentConfig): TrelloCreds {
 
 // Vem pronto do agents/index.ts, extraído do texto do cérebro (não é mais coluna
 // nem env var — editar o cérebro no painel já muda quem recebe alerta).
-function managementPhones(agent: AgentConfig): string[] {
+export function managementPhones(agent: AgentConfig): string[] {
   return agent.managementPhones ?? [];
 }
 
