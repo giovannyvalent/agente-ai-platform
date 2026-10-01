@@ -224,7 +224,7 @@ export function Landing() {
                   <h3 className="text-ivory font-medium text-xl mt-1 mb-2">Engenharia aplicada</h3>
                   <p className="text-steel text-sm leading-relaxed">
                     Não entregamos apenas um bot. Modelamos regras, contexto, segurança,
-                    integrações e comportamento — um time de agentes trabalhando em ciclo
+                    integrações e comportamento: um time de agentes trabalhando em ciclo
                     contínuo para colocar IA em produção de verdade.
                   </p>
                   <div className="mt-5 flex items-center gap-2">
@@ -342,68 +342,68 @@ export function Landing() {
 
       {/* SOBRE */}
       <section id="sobre" className="max-w-7xl mx-auto px-6 lg:px-8 py-24 border-t border-white/[0.06]">
-        <div className="grid lg:grid-cols-[auto_1fr] gap-12 items-center">
-          <Reveal>
-            <div className="text-[7rem] sm:text-[9rem] font-semibold text-white/[0.05] leading-none select-none">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <Reveal className="relative">
+            <div className="absolute -top-10 -left-2 text-[7rem] sm:text-[9rem] font-semibold text-white/[0.05] leading-none select-none pointer-events-none">
               AI
             </div>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <p className="text-electric-blue text-xs font-semibold tracking-[0.15em] mb-3">VENTURE</p>
-            <h2 className="text-3xl sm:text-4xl font-semibold text-ivory tracking-tight max-w-lg text-balance">
-              Implementação de IA com visão de negócio.
-            </h2>
-            <p className="mt-4 text-steel max-w-lg leading-relaxed">
-              A Venture nasce para reduzir a distância entre o potencial da inteligência
-              artificial e a execução dentro das empresas. Engenharia, estratégia e operação em
-              um mesmo time.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {["Agentes", "Automação", "Integrações", "IA aplicada"].map((tag) => (
-                <span key={tag} className="text-xs text-steel border border-white/10 rounded-full px-3 py-1">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </Reveal>
-        </div>
-
-        <Reveal delay={0.15}>
-          <div className="relative mt-16 overflow-hidden rounded-lg border border-white/[0.07] bg-gradient-to-br from-graphite/70 to-venture-black p-8 sm:p-12">
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{ background: "radial-gradient(ellipse 50% 80% at 15% 20%, rgba(61,90,254,0.14), transparent 60%)" }}
-              aria-hidden="true"
-            />
             <div className="relative">
-              <p className="text-electric-blue text-xs font-semibold tracking-[0.15em] mb-3">TIME VENTURE</p>
-              <h3 className="text-ivory text-xl sm:text-2xl font-semibold tracking-tight max-w-md text-balance">
-                Por trás da tecnologia, um time que constrói de verdade.
-              </h3>
-
-              <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-10 max-w-2xl">
-                {team.map((person, i) => (
-                  <Reveal key={person.name} delay={0.05 * i}>
-                    <motion.div whileHover={{ y: -6 }} className="flex flex-col items-center text-center group">
-                      <div className="relative">
-                        <motion.div
-                          className="absolute -inset-1.5 rounded-full opacity-0 group-hover:opacity-100"
-                          style={{ background: "conic-gradient(from 0deg, #3D5AFE, transparent 65%, #3D5AFE)" }}
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                        />
-                        <div className="relative">
-                          <TeamAvatar name={person.name} photo={person.photo} />
-                        </div>
-                      </div>
-                      <p className="text-ivory text-sm font-medium mt-4">{person.name}</p>
-                    </motion.div>
-                  </Reveal>
+              <p className="text-electric-blue text-xs font-semibold tracking-[0.15em] mb-3">VENTURE</p>
+              <h2 className="text-3xl sm:text-4xl font-semibold text-ivory tracking-tight max-w-lg text-balance">
+                Implementação de IA com visão de negócio.
+              </h2>
+              <p className="mt-4 text-steel max-w-lg leading-relaxed">
+                A Venture nasce para reduzir a distância entre o potencial da inteligência
+                artificial e a execução dentro das empresas. Engenharia, estratégia e operação em
+                um mesmo time.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {["Agentes", "Automação", "Integrações", "IA aplicada"].map((tag) => (
+                  <span key={tag} className="text-xs text-steel border border-white/10 rounded-full px-3 py-1">
+                    {tag}
+                  </span>
                 ))}
               </div>
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+
+          <Reveal delay={0.15}>
+            <div className="relative overflow-hidden rounded-lg border border-white/[0.07] bg-gradient-to-br from-graphite/70 to-venture-black p-8 sm:p-10">
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: "radial-gradient(ellipse 60% 80% at 15% 20%, rgba(61,90,254,0.14), transparent 60%)" }}
+                aria-hidden="true"
+              />
+              <div className="relative">
+                <p className="text-electric-blue text-xs font-semibold tracking-[0.15em] mb-3">TIME VENTURE</p>
+                <h3 className="text-ivory text-xl font-semibold tracking-tight text-balance">
+                  Por trás da tecnologia, um time que constrói de verdade.
+                </h3>
+
+                <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-8">
+                  {team.map((person, i) => (
+                    <Reveal key={person.name} delay={0.05 * i}>
+                      <motion.div whileHover={{ y: -6 }} className="flex flex-col items-center text-center group">
+                        <div className="relative">
+                          <motion.div
+                            className="absolute -inset-1.5 rounded-full opacity-0 group-hover:opacity-100"
+                            style={{ background: "conic-gradient(from 0deg, #3D5AFE, transparent 65%, #3D5AFE)" }}
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                          />
+                          <div className="relative">
+                            <TeamAvatar name={person.name} photo={person.photo} />
+                          </div>
+                        </div>
+                        <p className="text-ivory text-sm font-medium mt-4">{person.name}</p>
+                      </motion.div>
+                    </Reveal>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Reveal>
+        </div>
       </section>
 
       {/* CTA FINAL */}

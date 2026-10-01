@@ -1,113 +1,105 @@
 import { motion } from "framer-motion";
-import { MessageSquare, Workflow, ShieldCheck, BarChart3, Bot, type LucideIcon } from "lucide-react";
+import {
+  MessageSquare,
+  Workflow,
+  ShieldCheck,
+  BarChart3,
+  ChevronRight,
+  ChevronDown,
+  type LucideIcon,
+} from "lucide-react";
 
-interface Node {
+interface Step {
   icon: LucideIcon;
   label: string;
   sub: string;
-  col: 1 | 3;
-  row: 1 | 3;
 }
 
-const nodes: Node[] = [
-  { icon: MessageSquare, label: "Atendimento", sub: "entende a mensagem", col: 1, row: 1 },
-  { icon: Workflow, label: "Orquestração", sub: "decide o fluxo certo", col: 3, row: 1 },
-  { icon: ShieldCheck, label: "Regras & limites", sub: "aplica o que pode/não pode", col: 1, row: 3 },
-  { icon: BarChart3, label: "Métricas", sub: "mede e realimenta o ciclo", col: 3, row: 3 },
+const steps: Step[] = [
+  { icon: MessageSquare, label: "Atendimento", sub: "entende a mensagem" },
+  { icon: Workflow, label: "Orquestração", sub: "decide o fluxo certo" },
+  { icon: ShieldCheck, label: "Regras & limites", sub: "aplica o que pode e o que não pode" },
+  { icon: BarChart3, label: "Métricas", sub: "mede e realimenta o ciclo" },
 ];
 
-// Coordenadas (0-100) das 4 pontas e do núcleo, usadas só pelas linhas/partículas
-// do SVG — tem que bater com as células do grid 3x3 abaixo (colunas/linhas em
-// terços: 16.67%, 50%, 83.33%).
-const coord = (col: 1 | 2 | 3, row: 1 | 2 | 3) => ({
-  x: col === 1 ? 16.67 : col === 2 ? 50 : 83.33,
-  y: row === 1 ? 16.67 : row === 2 ? 50 : 83.33,
-});
-const HUB = coord(2, 2);
+function StepNode({ step, i }: { step: Step; i: number }) {
+  return (
+    <div className="flex flex-col items-center text-center gap-2 px-1">
+      <div className="relative">
+        <span className="absolute -top-1 -left-1 z-10 w-5 h-5 rounded-full bg-electric-blue text-venture-black text-[0.6rem] font-bold flex items-center justify-center">
+          0{i + 1}
+        </span>
+        <motion.div
+          className="w-14 h-14 rounded-2xl bg-electric-blue/10 border border-electric-blue/30 flex items-center justify-center"
+          animate={{
+            boxShadow: [
+              "0 0 0px 0px rgba(61,90,254,0)",
+              "0 0 20px 4px rgba(61,90,254,0.45)",
+              "0 0 0px 0px rgba(61,90,254,0)",
+            ],
+          }}
+          transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.4, ease: "easeInOut" }}
+        >
+          <step.icon size={22} className="text-electric-blue" strokeWidth={1.75} />
+        </motion.div>
+      </div>
+      <p className="text-ivory text-sm font-medium leading-tight">{step.label}</p>
+      <p className="text-steel text-xs leading-snug max-w-[120px]">{step.sub}</p>
+    </div>
+  );
+}
 
-// Visualização do "ciclo do agente" — núcleo central (o agente) com 4 etapas
-// nas pontas de um grid 3x3, conectadas por partículas que viajam do núcleo
-// até cada etapa, em loop contínuo. Distribuição simétrica por construção
-// (resolve o desbalanceamento do layout linear anterior) + anel de energia
-// girando ao redor do núcleo pra dar o efeito de "algo rodando ao vivo".
+function ConnectorRow({ i }: { i: number }) {
+  return (
+    <div className="relative flex items-center justify-center h-14 px-1 min-w-[32px] sm:min-w-[48px]">
+      <div className="absolute inset-x-0 top-7 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      <motion.span
+        className="absolute top-7 -translate-y-1/2 h-1.5 w-10 rounded-full"
+        style={{ background: "linear-gradient(90deg, transparent, #3D5AFE, transparent)", filter: "blur(0.5px)" }}
+        animate={{ left: ["-30%", "110%"] }}
+        transition={{ duration: 1.3, repeat: Infinity, delay: i * 0.4, ease: "easeInOut" }}
+      />
+      <ChevronRight size={14} className="relative z-10 top-7 text-electric-blue/80 bg-venture-black rounded-full" />
+    </div>
+  );
+}
+
+function ConnectorCol({ i }: { i: number }) {
+  return (
+    <div className="relative flex items-center justify-center w-14 h-8">
+      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-transparent via-white/15 to-transparent" />
+      <motion.span
+        className="absolute left-1/2 -translate-x-1/2 w-1.5 h-10 rounded-full"
+        style={{ background: "linear-gradient(180deg, transparent, #3D5AFE, transparent)", filter: "blur(0.5px)" }}
+        animate={{ top: ["-30%", "110%"] }}
+        transition={{ duration: 1.3, repeat: Infinity, delay: i * 0.4, ease: "easeInOut" }}
+      />
+      <ChevronDown size={14} className="relative z-10 text-electric-blue/80 bg-venture-black rounded-full" />
+    </div>
+  );
+}
+
+// Fluxo direcional em 4 etapas (sentido único, esquerda->direita / cima->baixo)
+// com seta explícita e partícula viajando sempre na mesma direção a cada
+// conector, pra deixar claro que é uma sequência e não um vai-e-volta.
+// Colunas de largura igual (grid 1fr/auto) garantem distribuição simétrica.
 export function AgentWorkflowViz() {
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[360px] py-4">
-      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full" aria-hidden="true">
-        {nodes.map((n) => {
-          const p = coord(n.col, n.row);
-          return (
-            <line
-              key={n.label}
-              x1={HUB.x}
-              y1={HUB.y}
-              x2={p.x}
-              y2={p.y}
-              stroke="#ffffff"
-              strokeOpacity={0.08}
-              strokeWidth={0.6}
-            />
-          );
-        })}
-        {nodes.map((n, i) => {
-          const p = coord(n.col, n.row);
-          return (
-            <motion.circle
-              key={n.label}
-              r={1.6}
-              fill="#3D5AFE"
-              initial={false}
-              animate={{ cx: [HUB.x, p.x], cy: [HUB.y, p.y], opacity: [0, 1, 1, 0] }}
-              transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.5, ease: "easeInOut" }}
-              style={{ filter: "drop-shadow(0 0 3px #3D5AFE)" }}
-            />
-          );
-        })}
-      </svg>
+    <div className="w-full">
+      <div className="hidden sm:grid items-start" style={{ gridTemplateColumns: "1fr auto 1fr auto 1fr auto 1fr" }}>
+        {steps.flatMap((step, i) =>
+          i < steps.length - 1
+            ? [<StepNode key={step.label} step={step} i={i} />, <ConnectorRow key={`c-${i}`} i={i} />]
+            : [<StepNode key={step.label} step={step} i={i} />]
+        )}
+      </div>
 
-      {/* Anel de energia girando ao redor do núcleo */}
-      <motion.div
-        className="absolute left-1/2 top-1/2 w-24 h-24 sm:w-28 sm:h-28 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
-        style={{
-          background: "conic-gradient(from 0deg, transparent 0%, rgba(61,90,254,0.7) 12%, transparent 28%)",
-          WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px))",
-          mask: "radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px))",
-        }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-      />
-
-      <div className="relative grid grid-cols-3 grid-rows-3 w-full h-full">
-        {nodes.map((n, i) => (
-          <div
-            key={n.label}
-            className={`flex flex-col items-center justify-center text-center gap-1 ${
-              n.col === 1 ? "col-start-1" : "col-start-3"
-            } ${n.row === 1 ? "row-start-1" : "row-start-3"}`}
-          >
-            <motion.div
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-electric-blue/10 border border-electric-blue/30 flex items-center justify-center"
-              animate={{
-                boxShadow: [
-                  "0 0 0px 0px rgba(61,90,254,0)",
-                  "0 0 18px 3px rgba(61,90,254,0.4)",
-                  "0 0 0px 0px rgba(61,90,254,0)",
-                ],
-              }}
-              transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.5, ease: "easeInOut" }}
-            >
-              <n.icon size={19} className="text-electric-blue" strokeWidth={1.75} />
-            </motion.div>
-            <p className="text-ivory text-xs font-medium leading-tight w-24">{n.label}</p>
-            <p className="text-steel text-[0.65rem] leading-snug w-24">{n.sub}</p>
-          </div>
-        ))}
-
-        <div className="col-start-2 row-start-2 flex items-center justify-center">
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-venture-black border border-electric-blue/40 flex items-center justify-center">
-            <Bot size={24} className="text-electric-blue" strokeWidth={1.75} />
-          </div>
-        </div>
+      <div className="flex sm:hidden flex-col items-center">
+        {steps.flatMap((step, i) =>
+          i < steps.length - 1
+            ? [<StepNode key={step.label} step={step} i={i} />, <ConnectorCol key={`c-${i}`} i={i} />]
+            : [<StepNode key={step.label} step={step} i={i} />]
+        )}
       </div>
     </div>
   );
