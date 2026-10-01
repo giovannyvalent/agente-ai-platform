@@ -185,7 +185,7 @@ export function Overview() {
           {loadingMetrics ? (
             <p className="text-steel text-sm py-8 text-center">Carregando...</p>
           ) : hasAnyData ? (
-            <MultiLineChart series={series} />
+            <MultiLineChart series={series} xLabels={dayBuckets} />
           ) : (
             <p className="text-steel text-sm py-8 text-center">
               Nenhuma interação registrada nesse período ainda.
