@@ -127,7 +127,7 @@ export function Landing() {
             </div>
           </div>
 
-          <div className="hidden lg:block animate-fade-up" style={{ animationDelay: "0.15s" }}>
+          <div className="mt-4 lg:mt-0 animate-fade-up" style={{ animationDelay: "0.15s" }}>
             <HeroStage />
           </div>
         </div>

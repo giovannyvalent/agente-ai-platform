@@ -25,7 +25,7 @@ export function Navbar() {
   return (
     <header
       className={`sticky top-0 z-50 transition-colors duration-300 ${
-        scrolled || open ? "bg-venture-black/80 backdrop-blur-md border-b border-white/[0.06]" : "bg-transparent"
+        scrolled || open ? "bg-venture-black border-b border-white/[0.06]" : "bg-transparent"
       }`}
     >
       <nav className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-8 h-20">
