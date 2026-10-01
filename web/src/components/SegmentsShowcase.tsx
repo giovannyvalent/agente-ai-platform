@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { TiltCard } from "./TiltCard";
 import {
   Stethoscope,
   Scale,
@@ -202,28 +203,43 @@ export function SegmentsShowcase() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -16 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="rounded-lg border border-electric-blue/20 bg-graphite/60 backdrop-blur-sm p-8 sm:p-10"
-              style={{ boxShadow: "0 0 60px -20px rgba(61,90,254,0.25)" }}
             >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 shrink-0 rounded-md bg-electric-blue/10 flex items-center justify-center">
-                  <current.icon size={22} className="text-electric-blue" strokeWidth={1.75} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-steel text-xs tracking-[0.1em]">DOR COMUM · {current.segment.toUpperCase()}</p>
-                  <p className="text-ivory text-lg sm:text-xl font-medium mt-1.5 leading-snug text-balance">
-                    "{current.pain}"
-                  </p>
-                </div>
-              </div>
+              <TiltCard className="relative overflow-hidden rounded-lg border border-electric-blue/20 bg-graphite/60 backdrop-blur-sm">
+                <div
+                  className="relative p-8 sm:p-10"
+                  style={{ boxShadow: "0 0 60px -20px rgba(61,90,254,0.25)" }}
+                >
+                  <current.icon
+                    size={180}
+                    strokeWidth={1}
+                    className="absolute -right-6 -bottom-10 text-white/[0.04] pointer-events-none select-none"
+                    aria-hidden="true"
+                  />
 
-              <div className="mt-6 pt-6 border-t border-white/[0.06] flex items-start gap-3">
-                <ArrowRight size={18} className="text-electric-blue shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-electric-blue font-medium text-sm">{current.agent}</p>
-                  <p className="text-steel text-sm mt-1 leading-relaxed">{current.desc}</p>
+                  <div className="relative grid sm:grid-cols-2 gap-8 sm:gap-6">
+                    <div className="flex items-start gap-4 sm:pr-6 sm:border-r sm:border-white/[0.07]">
+                      <div className="w-12 h-12 shrink-0 rounded-md bg-electric-blue/10 flex items-center justify-center">
+                        <current.icon size={22} className="text-electric-blue" strokeWidth={1.75} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-steel text-xs tracking-[0.1em]">DOR COMUM · {current.segment.toUpperCase()}</p>
+                        <p className="text-ivory text-lg sm:text-xl font-medium mt-1.5 leading-snug text-balance">
+                          "{current.pain}"
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <ArrowRight size={18} className="text-electric-blue shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-steel text-xs tracking-[0.1em]">AGENTE RECOMENDADO</p>
+                        <p className="text-electric-blue font-medium text-sm mt-1.5">{current.agent}</p>
+                        <p className="text-steel text-sm mt-1 leading-relaxed">{current.desc}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </TiltCard>
             </motion.div>
           </AnimatePresence>
         </div>
