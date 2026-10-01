@@ -170,13 +170,13 @@ export function SegmentsShowcase() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="mt-12 flex flex-wrap justify-center gap-2"
+          className="mt-12 flex flex-nowrap sm:flex-wrap sm:justify-center gap-2 overflow-x-auto sm:overflow-visible pb-2 sm:pb-0 px-6 -mx-6 sm:px-0 sm:mx-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {segments.map((s, i) => (
             <button
               key={s.segment}
               onClick={() => setActive(i)}
-              className={`relative px-4 py-2.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+              className={`relative px-4 py-2.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 shrink-0 ${
                 active === i ? "text-venture-black" : "text-steel hover:text-ivory"
               }`}
             >
@@ -210,7 +210,7 @@ export function SegmentsShowcase() {
                   <current.icon size={22} className="text-electric-blue" strokeWidth={1.75} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-steel text-xs tracking-[0.1em]">DOR COMUM NO {current.segment.toUpperCase()}</p>
+                  <p className="text-steel text-xs tracking-[0.1em]">DOR COMUM · {current.segment.toUpperCase()}</p>
                   <p className="text-ivory text-lg sm:text-xl font-medium mt-1.5 leading-snug text-balance">
                     "{current.pain}"
                   </p>
