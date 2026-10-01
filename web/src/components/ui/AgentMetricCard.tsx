@@ -21,7 +21,9 @@ export function AgentMetricCard({ name, enabled, color, stats }: AgentMetricCard
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
           <strong className="text-ivory text-sm truncate">{name}</strong>
         </div>
-        <Badge tone={enabled ? "success" : "neutral"}>{enabled ? "Em produção" : "Pausado"}</Badge>
+        <Badge tone={enabled ? "success" : "neutral"} className="shrink-0 whitespace-nowrap">
+          {enabled ? "Em produção" : "Pausado"}
+        </Badge>
       </div>
       <div className="grid grid-cols-3 gap-2">
         {stats.map((s) => (

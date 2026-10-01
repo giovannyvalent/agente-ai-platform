@@ -4,6 +4,7 @@ import { Navbar } from "../components/Navbar";
 import { Logo } from "../components/Logo";
 import { HeroStage } from "../components/HeroStage";
 import { LogoMarquee } from "../components/LogoMarquee";
+import { SegmentsShowcase } from "../components/SegmentsShowcase";
 import { CursorSpotlight } from "../components/CursorSpotlight";
 import { GrainOverlay } from "../components/GrainOverlay";
 import { TiltCard } from "../components/TiltCard";
@@ -140,6 +141,8 @@ export function Landing() {
       </section>
 
       <LogoMarquee />
+
+      <SegmentsShowcase />
 
       {/* SOLUÇÕES */}
       <section id="solucoes" className="max-w-7xl mx-auto px-6 lg:px-8 py-24">

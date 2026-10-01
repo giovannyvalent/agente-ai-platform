@@ -25,6 +25,7 @@ export function useAgentsData() {
   const [agents, setAgents] = useState<AgentRow[]>([]);
   const [brains, setBrains] = useState<Record<string, BrainRow>>({});
   const [clientsByAgent, setClientsByAgent] = useState<Record<string, string[]>>({});
+  const [tenantId, setTenantId] = useState("");
   const [tenantName, setTenantName] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +40,10 @@ export function useAgentsData() {
       const tenantIds = (memberships ?? []).map((m) => m.tenant_id);
       if (tenantIds.length > 0) {
         const { data: tenants } = await supabase.from("tenants").select("id,name").in("id", tenantIds);
-        if (!cancelled) setTenantName((tenants ?? []).map((t) => t.name).join(", "));
+        if (!cancelled) {
+          setTenantId(tenantIds[0] ?? "");
+          setTenantName((tenants ?? []).map((t) => t.name).join(", "));
+        }
       }
 
       const { data: agentRows } = await supabase.from("agents").select("*").order("name");
@@ -74,5 +78,5 @@ export function useAgentsData() {
     };
   }, []);
 
-  return { agents, brains, clientsByAgent, tenantName, loading };
+  return { agents, brains, clientsByAgent, tenantId, tenantName, loading };
 }

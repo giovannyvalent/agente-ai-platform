@@ -18,14 +18,24 @@ interface DispatchRow {
 }
 
 export function Dispatches() {
-  const { agents } = useAgentsData();
+  const { agents, clientsByAgent } = useAgentsData();
   const [dispatches, setDispatches] = useState<DispatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [agentId, setAgentId] = useState("");
-  const [rules, setRules] = useState("tipo: monitor_boards\n");
+  const [rules, setRules] = useState("");
+  const [rulesTouched, setRulesTouched] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const selectedHasBoards = (clientsByAgent[agentId] ?? []).length > 0;
+
+  // Sugere a regra certa pro tipo de agente selecionado — só se o usuário
+  // ainda não mexeu no texto manualmente.
+  useEffect(() => {
+    if (rulesTouched) return;
+    setRules(selectedHasBoards ? "tipo: monitor_boards\n" : "");
+  }, [agentId, selectedHasBoards, rulesTouched]);
 
   async function load() {
     const { data } = await supabase.from("dispatches").select("*").order("created_at", { ascending: false });
@@ -49,7 +59,7 @@ export function Dispatches() {
     setCreating(false);
     if (!error) {
       setName("");
-      setRules("tipo: monitor_boards\n");
+      setRulesTouched(false);
       load();
     }
   }
@@ -104,15 +114,27 @@ export function Dispatches() {
             <Label>Regras (texto livre — define o que esse disparo faz)</Label>
             <textarea
               value={rules}
-              onChange={(e) => setRules(e.target.value)}
+              onChange={(e) => {
+                setRules(e.target.value);
+                setRulesTouched(true);
+              }}
+              placeholder={selectedHasBoards ? "tipo: monitor_boards" : "Esse agente ainda não tem nenhum tipo de disparo disponível."}
               spellCheck={false}
               className="w-full min-h-[120px] bg-venture-black border border-white/10 rounded-[10px] px-4 py-3 text-[0.9rem] text-ivory font-mono"
             />
-            <p className="text-steel text-xs mt-1.5">
-              Hoje só o tipo <code className="text-ivory">monitor_boards</code> está implementado (roda a
-              checagem de cards atrasados do Trello desse agente). Novos tipos entram conforme forem
-              construídos.
-            </p>
+            {selectedHasBoards ? (
+              <p className="text-steel text-xs mt-1.5">
+                Hoje só o tipo <code className="text-ivory">monitor_boards</code> está implementado (roda a
+                checagem de cards atrasados do Trello desse agente). Novos tipos entram conforme forem
+                construídos.
+              </p>
+            ) : (
+              <p className="text-steel text-xs mt-1.5">
+                Esse agente não tem board do Trello vinculado, então nenhum tipo de disparo pronto se
+                aplica a ele ainda. Novos tipos (ex.: relatório de janela) entram aqui conforme forem
+                construídos.
+              </p>
+            )}
           </div>
           <Button className="mt-4" onClick={handleCreate} disabled={creating || !name.trim()}>
             {creating ? "Criando..." : "Criar disparo"}
