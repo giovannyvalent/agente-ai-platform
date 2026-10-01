@@ -50,11 +50,28 @@ const AUTH_LABELS: Record<ExternalApiRow["auth_type"], string> = {
 // — não é uma lista fixa igual pra todo mundo. Z-API e API externa já são
 // auto-serviço (o próprio tenant cadastra); Conta Azul e Nibo ainda não têm
 // conector pronto, aparecem como roadmap até ganharem um.
+interface ExternalApiPreset {
+  name: string;
+  baseUrl: string;
+  authType: ExternalApiRow["auth_type"];
+  authHeader?: string;
+}
+
 export function SettingsPage() {
   const { tenantId, tenantName, clientsByAgent, zapiInstances, agents, refetch } = useAgentsData();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [externalApiNames, setExternalApiNames] = useState<string[]>([]);
+  const [preset, setPreset] = useState<ExternalApiPreset | null>(null);
+
+  const hasContaAzul = externalApiNames.includes("Conta Azul");
+  const hasNibo = externalApiNames.includes("Nibo");
+
+  function configureIntegration(p: ExternalApiPreset) {
+    setPreset(p);
+    document.getElementById("external-apis-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   useEffect(() => {
     setName(tenantName);
@@ -139,6 +156,8 @@ export function SettingsPage() {
               desc="Canal operacional dos agentes"
               status={zapiInstances.length > 0 ? `Conectado (${zapiInstances.length})` : "Não configurado"}
               connected={zapiInstances.length > 0}
+              cta={zapiInstances.length > 0 ? "Gerenciar" : "Configurar"}
+              onClick={() => document.getElementById("zapi-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
             />
             <IntegrationStatus
               icon={Workflow}
@@ -147,13 +166,47 @@ export function SettingsPage() {
               status={hasTrello ? "Conectado" : "Não configurado"}
               connected={hasTrello}
             />
-            <IntegrationStatus icon={Landmark} name="Conta Azul" desc="Financeiro e faturamento" status="Em breve" />
-            <IntegrationStatus icon={Calculator} name="Nibo" desc="Contabilidade e obrigações" status="Em breve" />
+            <IntegrationStatus
+              icon={Landmark}
+              name="Conta Azul"
+              desc="Financeiro e faturamento"
+              status={hasContaAzul ? "Conectado" : "Não configurado"}
+              connected={hasContaAzul}
+              cta={hasContaAzul ? "Gerenciar" : "Configurar"}
+              onClick={() =>
+                configureIntegration({ name: "Conta Azul", baseUrl: "https://api.contaazul.com", authType: "bearer" })
+              }
+            />
+            <IntegrationStatus
+              icon={Calculator}
+              name="Nibo"
+              desc="Contabilidade e obrigações"
+              status={hasNibo ? "Conectado" : "Não configurado"}
+              connected={hasNibo}
+              cta={hasNibo ? "Gerenciar" : "Configurar"}
+              onClick={() =>
+                configureIntegration({
+                  name: "Nibo",
+                  baseUrl: "https://api.nibo.com.br/empresas/v1",
+                  authType: "api_key",
+                  authHeader: "apitoken",
+                })
+              }
+            />
+            <IntegrationStatus
+              icon={Globe}
+              name="API externa"
+              desc="Qualquer outra API que você queira mapear"
+              status={externalApiNames.length > 0 ? `Conectado (${externalApiNames.length})` : "Não configurado"}
+              connected={externalApiNames.length > 0}
+              cta={externalApiNames.length > 0 ? "Gerenciar" : "Configurar"}
+              onClick={() => document.getElementById("external-apis-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            />
           </div>
         </Card>
 
         <ZapiSection instances={zapiInstances} agents={agents} tenantId={tenantId} onChange={refetch} />
-        <ExternalApisSection tenantId={tenantId} />
+        <ExternalApisSection tenantId={tenantId} preset={preset} onPresetConsumed={() => setPreset(null)} onApisChange={(rows) => setExternalApiNames(rows.map((r) => r.name))} />
       </div>
     </DashboardLayout>
   );
@@ -165,12 +218,16 @@ function IntegrationStatus({
   desc,
   status,
   connected,
+  cta,
+  onClick,
 }: {
   icon: typeof Smartphone;
   name: string;
   desc: string;
   status: string;
   connected?: boolean;
+  cta?: string;
+  onClick?: () => void;
 }) {
   return (
     <div className="flex items-start gap-3 p-4 rounded-[10px] border border-white/[0.06] bg-venture-black">
@@ -178,7 +235,14 @@ function IntegrationStatus({
         <Icon size={17} className="text-electric-blue" strokeWidth={1.75} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-ivory text-sm font-medium">{name}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-ivory text-sm font-medium">{name}</p>
+          {onClick && cta && (
+            <button type="button" onClick={onClick} className="text-electric-blue text-xs font-medium shrink-0 hover:underline">
+              {cta}
+            </button>
+          )}
+        </div>
         <p className="text-steel text-xs mt-0.5">{desc}</p>
         <Badge tone={connected ? "success" : "neutral"} className="mt-2">
           {status}
@@ -251,7 +315,7 @@ function ZapiSection({
   }
 
   return (
-    <Card className="mt-4 p-6">
+    <Card className="mt-4 p-6" id="zapi-section">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-ivory font-medium mb-1">Instâncias Z-API</h2>
@@ -348,7 +412,17 @@ function ZapiSection({
 }
 
 // ─── API externa: catálogo de APIs + rotas mapeadas pelo tenant ──────
-function ExternalApisSection({ tenantId }: { tenantId: string }) {
+function ExternalApisSection({
+  tenantId,
+  preset,
+  onPresetConsumed,
+  onApisChange,
+}: {
+  tenantId: string;
+  preset?: ExternalApiPreset | null;
+  onPresetConsumed?: () => void;
+  onApisChange?: (apis: ExternalApiRow[]) => void;
+}) {
   const [apis, setApis] = useState<ExternalApiRow[]>([]);
   const [routesByApi, setRoutesByApi] = useState<Record<string, ExternalApiRouteRow[]>>({});
   const [loading, setLoading] = useState(true);
@@ -371,6 +445,7 @@ function ExternalApisSection({ tenantId }: { tenantId: string }) {
       .select("id,name,base_url,auth_type,auth_header,auth_value")
       .order("name");
     setApis(apiRows ?? []);
+    onApisChange?.(apiRows ?? []);
 
     const apiIds = (apiRows ?? []).map((a) => a.id);
     if (apiIds.length > 0) {
@@ -392,7 +467,27 @@ function ExternalApisSection({ tenantId }: { tenantId: string }) {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Clicar em "Configurar" num card de integração (Conta Azul, Nibo) pré-preenche
+  // esse formulário em vez de abrir em branco — mesmo catálogo por baixo, só
+  // com um atalho pros provedores mais comuns.
+  useEffect(() => {
+    if (!preset) return;
+    const existing = apis.find((a) => a.name === preset.name);
+    if (existing) {
+      setExpanded((e) => ({ ...e, [existing.id]: true }));
+    } else {
+      setApiName(preset.name);
+      setBaseUrl(preset.baseUrl);
+      setAuthType(preset.authType);
+      setAuthHeader(preset.authHeader ?? "");
+      setShowForm(true);
+    }
+    onPresetConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preset]);
 
   function resetApiForm() {
     setApiName("");
@@ -451,7 +546,7 @@ function ExternalApisSection({ tenantId }: { tenantId: string }) {
   }
 
   return (
-    <Card className="mt-4 p-6">
+    <Card className="mt-4 p-6" id="external-apis-section">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-ivory font-medium mb-1">APIs externas</h2>
