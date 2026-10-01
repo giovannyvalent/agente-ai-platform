@@ -1,6 +1,23 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Stethoscope, Scale, Building2, Landmark, ShoppingBag, GraduationCap, ArrowRight } from "lucide-react";
+import {
+  Stethoscope,
+  Scale,
+  Building2,
+  Landmark,
+  ShoppingBag,
+  GraduationCap,
+  Truck,
+  BedDouble,
+  ShieldCheck,
+  Calculator,
+  Dumbbell,
+  Sparkles,
+  Car,
+  HardHat,
+  Users,
+  ArrowRight,
+} from "lucide-react";
 
 const segments = [
   {
@@ -44,6 +61,69 @@ const segments = [
     pain: "Dúvida repetida de matrícula e boleto tomando o tempo da secretaria inteira.",
     agent: "Agente de Admissões & Suporte",
     desc: "Tira dúvida recorrente, acompanha matrícula e escala pro humano só quando precisa de verdade.",
+  },
+  {
+    icon: Truck,
+    segment: "Logística & Transporte",
+    pain: "Cliente ligando pra saber onde tá a carga, e o time sem tempo de rastrear cada entrega.",
+    agent: "Agente de Rastreamento & Status",
+    desc: "Informa posição e previsão de entrega na hora, e avisa proativamente qualquer atraso.",
+  },
+  {
+    icon: BedDouble,
+    segment: "Hotelaria & Turismo",
+    pain: "Reserva indo e voltando por vários canais, e recepção sem tempo pra responder todo mundo rápido.",
+    agent: "Agente de Reservas & Concierge",
+    desc: "Confirma disponibilidade, fecha reserva e tira dúvida de hóspede 24h, sem fila de espera.",
+  },
+  {
+    icon: ShieldCheck,
+    segment: "Seguros",
+    pain: "Sinistro e renovação de apólice gerando volume de mensagem que trava o corretor.",
+    agent: "Agente de Sinistro & Renovação",
+    desc: "Abre chamado, acompanha status do sinistro e avisa renovação antes do vencimento.",
+  },
+  {
+    icon: Calculator,
+    segment: "Contabilidade",
+    pain: "Cliente mandando documento e dúvida de guia/imposto o tempo todo pelo WhatsApp do escritório.",
+    agent: "Agente de Documentos & Obrigações",
+    desc: "Coleta documento, lembra prazo de guia e obrigação, e organiza tudo antes de chegar no contador.",
+  },
+  {
+    icon: Dumbbell,
+    segment: "Academias & Fitness",
+    pain: "Aluno sumindo sem aviso e recepção sem tempo de ligar pra reativar matrícula.",
+    agent: "Agente de Retenção & Matrícula",
+    desc: "Identifica aluno inativo, reengaja por WhatsApp e já oferece renovação ou novo plano.",
+  },
+  {
+    icon: Sparkles,
+    segment: "Beleza & Estética",
+    pain: "Agenda de salão/clínica lotada de mensagem de horário e cliente que esquece o compromisso.",
+    agent: "Agente de Agendamento & Lembrete",
+    desc: "Marca horário, confirma véspera e reagenda sozinho quando o cliente não pode comparecer.",
+  },
+  {
+    icon: Car,
+    segment: "Serviços Automotivos",
+    pain: "Oficina lotada de pergunta sobre orçamento e status do carro, atrasando o atendimento no balcão.",
+    agent: "Agente de Orçamento & Status de Serviço",
+    desc: "Responde orçamento padrão, atualiza status do veículo e avisa quando ficar pronto.",
+  },
+  {
+    icon: HardHat,
+    segment: "Construção Civil",
+    pain: "Orçamento de obra e acompanhamento de etapa espalhado entre planilha, ligação e visita.",
+    agent: "Agente de Orçamento & Acompanhamento de Obra",
+    desc: "Qualifica lead de obra, organiza etapa do projeto e mantém cliente informado do andamento.",
+  },
+  {
+    icon: Users,
+    segment: "RH & Recrutamento",
+    pain: "Triagem de currículo e dúvida de candidato tomando o tempo que o RH devia usar pra entrevistar.",
+    agent: "Agente de Triagem & Comunicação com Candidato",
+    desc: "Faz a triagem inicial, agenda entrevista e mantém candidato informado em cada etapa do processo.",
   },
 ];
 
