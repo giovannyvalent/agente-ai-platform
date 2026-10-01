@@ -1,12 +1,19 @@
-// Nomes reais de clientes da Venture (não inventados) — adicionar aqui conforme
-// novos clientes entrarem na plataforma.
+// Nomes fictícios (mockup de prova social, como no briefing original) —
+// não são empresas reais, só compõem a faixa visualmente até termos uma
+// lista maior de clientes reais pra exibir.
 const brands = [
-  { name: "AM", full: "AM Gestão & Estratégia" },
-  { name: "ANSER", full: "Anser" },
+  { name: "Nexum", mark: "NX" },
+  { name: "Orvia", mark: "OR" },
+  { name: "Kivora", mark: "KV" },
+  { name: "Cendra", mark: "CD" },
+  { name: "Talvo", mark: "TV" },
+  { name: "Aurenz", mark: "AZ" },
+  { name: "Zenith Labs", mark: "ZL" },
+  { name: "Fluxora", mark: "FX" },
 ];
 
 export function LogoMarquee() {
-  const row = [...brands, ...brands, ...brands];
+  const row = [...brands, ...brands];
 
   return (
     <section className="py-16 border-y border-white/[0.06] bg-graphite/20">
@@ -21,15 +28,12 @@ export function LogoMarquee() {
           {row.map((b, i) => (
             <div
               key={`${b.name}-${i}`}
-              className="flex items-center gap-3 mx-4 px-6 py-4 rounded-lg border border-white/[0.08] bg-venture-black/60 shrink-0"
+              className="flex items-center gap-3 mx-3 px-5 py-4 w-[200px] shrink-0 rounded-lg border border-white/[0.08] bg-venture-black/60"
             >
               <div className="w-9 h-9 rounded-md bg-electric-blue/10 flex items-center justify-center shrink-0">
-                <span className="text-electric-blue text-xs font-bold">{b.name.slice(0, 2)}</span>
+                <span className="text-electric-blue text-xs font-bold">{b.mark}</span>
               </div>
-              <div className="text-left">
-                <p className="text-ivory font-medium text-sm leading-tight">{b.name}</p>
-                <p className="text-steel text-xs leading-tight">{b.full}</p>
-              </div>
+              <p className="text-ivory font-medium text-sm leading-tight truncate">{b.name}</p>
             </div>
           ))}
         </div>

@@ -43,10 +43,13 @@ const results = [
   { value: "04", label: "agentes ativos", note: "monitorados em produção" },
 ];
 
-function Reveal({ children }: { children: React.ReactNode }) {
-  const { ref, className } = useReveal<HTMLDivElement>();
+// IMPORTANTE: este <div> é quem vira o item de grid de verdade quando usado
+// dentro de um container `grid` — classes de col-span/row-span precisam ir
+// AQUI (via `className`), nunca só no filho (Card), senão não tem efeito.
+function Reveal({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const { ref, className: revealClassName } = useReveal<HTMLDivElement>();
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} className={`${revealClassName} ${className}`}>
       {children}
     </div>
   );
@@ -159,22 +162,29 @@ export function Landing() {
             </Reveal>
           ))}
 
-          <Reveal>
-            <Card className="p-7 overflow-hidden sm:col-span-2 lg:col-span-3">
-              <div className="flex flex-col md:flex-row gap-8 md:items-center">
-                <div className="md:flex-1 md:min-w-0">
+          <Reveal className="sm:col-span-2 lg:col-span-3">
+            <Card className="p-7 sm:p-9 overflow-hidden h-full">
+              <div className="flex flex-col md:flex-row gap-10 md:items-center">
+                <div className="md:max-w-sm shrink-0">
                   <span className="text-steel text-xs">04</span>
-                  <h3 className="text-ivory font-medium mt-1 mb-2">Engenharia aplicada</h3>
+                  <h3 className="text-ivory font-medium text-lg mt-1 mb-2">Engenharia aplicada</h3>
                   <p className="text-steel text-sm leading-relaxed">
                     Não entregamos apenas um bot. Modelamos regras, contexto, segurança,
                     integrações e comportamento para colocar IA em produção.
                   </p>
                 </div>
-                <div className="md:flex-1 md:min-w-0 bg-venture-black rounded-[10px] border border-white/[0.06] p-4 font-mono text-[0.8rem] leading-relaxed overflow-x-auto">
-                  <div className="flex gap-3 text-steel whitespace-nowrap"><span className="text-steel/50">01</span>context.load(company_memory)</div>
-                  <div className="flex gap-3 text-steel whitespace-nowrap"><span className="text-steel/50">02</span>agent.reason(request)</div>
-                  <div className="flex gap-3 text-electric-blue whitespace-nowrap"><span className="text-electric-blue/60">03</span>workflow.execute(action)</div>
-                  <div className="flex gap-3 text-steel whitespace-nowrap"><span className="text-steel/50">04</span>metrics.observe(result)</div>
+                <div className="flex-1 min-w-0 bg-venture-black rounded-[10px] border border-white/[0.06] overflow-hidden">
+                  <div className="flex items-center gap-1.5 px-4 h-9 border-b border-white/[0.06]">
+                    <span className="w-2 h-2 rounded-full bg-white/15" />
+                    <span className="w-2 h-2 rounded-full bg-white/15" />
+                    <span className="w-2 h-2 rounded-full bg-white/15" />
+                  </div>
+                  <div className="p-4 font-mono text-[0.78rem] leading-loose">
+                    <div className="flex gap-3 text-steel"><span className="text-steel/50 shrink-0">01</span><span className="truncate">context.load(memory)</span></div>
+                    <div className="flex gap-3 text-steel"><span className="text-steel/50 shrink-0">02</span><span className="truncate">agent.reason(request)</span></div>
+                    <div className="flex gap-3 text-electric-blue"><span className="text-electric-blue/60 shrink-0">03</span><span className="truncate">workflow.execute(action)</span></div>
+                    <div className="flex gap-3 text-steel"><span className="text-steel/50 shrink-0">04</span><span className="truncate">metrics.observe(result)</span></div>
+                  </div>
                 </div>
               </div>
             </Card>
