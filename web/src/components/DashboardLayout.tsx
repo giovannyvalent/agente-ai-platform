@@ -18,14 +18,25 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const [tenantName, setTenantName] = useState("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
         navigate("/login");
         return;
       }
       setEmail(data.user.email ?? "");
+
+      const { data: memberships } = await supabase
+        .from("tenant_users")
+        .select("tenant_id")
+        .eq("user_id", data.user.id);
+      const tenantIds = (memberships ?? []).map((m) => m.tenant_id);
+      if (tenantIds.length > 0) {
+        const { data: tenants } = await supabase.from("tenants").select("name").in("id", tenantIds);
+        setTenantName((tenants ?? []).map((t) => t.name).join(", "));
+      }
     });
   }, [navigate]);
 
@@ -40,7 +51,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-venture-black flex">
       {/* Sidebar — desktop */}
-      <aside className="hidden lg:flex w-60 shrink-0 flex-col bg-venture-black border-r border-white/[0.06] px-4 py-6">
+      <aside className="hidden lg:flex w-60 shrink-0 flex-col bg-black border-r border-white/[0.06] px-4 py-6">
         <div className="px-2 mb-8">
           <Logo />
         </div>
@@ -68,7 +79,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
             <div className="min-w-0">
               <p className="text-ivory text-sm truncate capitalize">{username || "—"}</p>
-              <p className="text-steel text-xs">Empresa</p>
+              <p className="text-steel text-xs truncate">{tenantName || "Empresa"}</p>
             </div>
           </div>
           <button onClick={handleLogout} className="text-steel hover:text-ivory shrink-0" title="Sair">
@@ -78,14 +89,14 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Sidebar — mobile drawer */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 bg-venture-black border-b border-white/[0.06]">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 bg-black border-b border-white/[0.06]">
         <Logo />
         <button onClick={() => setOpen(true)} className="text-ivory">
           <Menu size={22} />
         </button>
       </div>
       {open && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-venture-black flex flex-col px-6 py-6">
+        <div className="lg:hidden fixed inset-0 z-50 bg-black flex flex-col px-6 py-6">
           <div className="flex items-center justify-between mb-8">
             <Logo />
             <button onClick={() => setOpen(false)} className="text-ivory">
