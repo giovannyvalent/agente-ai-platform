@@ -18,6 +18,7 @@ import { Input, Label } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
 import { Switch } from "../../components/ui/Switch";
+import { Modal } from "../../components/ui/Modal";
 import { useAgentsData, ZapiInstanceRow } from "../../lib/useAgents";
 import { supabase } from "../../lib/supabase";
 
@@ -57,6 +58,8 @@ interface ExternalApiPreset {
   authHeader?: string;
 }
 
+type ModalKind = "zapi" | "trello" | "external" | null;
+
 export function SettingsPage() {
   const { tenantId, tenantName, clientsByAgent, zapiInstances, agents, refetch } = useAgentsData();
   const [name, setName] = useState("");
@@ -64,20 +67,47 @@ export function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [externalApiNames, setExternalApiNames] = useState<string[]>([]);
   const [preset, setPreset] = useState<ExternalApiPreset | null>(null);
+  const [activeModal, setActiveModal] = useState<ModalKind>(null);
+  const [trelloConfigured, setTrelloConfigured] = useState(false);
 
   const hasContaAzul = externalApiNames.includes("Conta Azul");
   const hasNibo = externalApiNames.includes("Nibo");
 
   function configureIntegration(p: ExternalApiPreset) {
     setPreset(p);
-    document.getElementById("external-apis-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveModal("external");
   }
 
   useEffect(() => {
     setName(tenantName);
   }, [tenantName]);
 
-  const hasTrello = Object.values(clientsByAgent).some((list) => list.length > 0);
+  // Status real do grid não pode depender de já ter aberto o modal (os modais
+  // só montam o conteúdo quando abertos) — busca leve só pra saber o que já
+  // está configurado, independente do usuário ter clicado em algo ainda.
+  useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+    supabase
+      .from("external_apis")
+      .select("name")
+      .then(({ data }) => {
+        if (!cancelled) setExternalApiNames((data ?? []).map((r) => r.name));
+      });
+    supabase
+      .from("trello_credentials")
+      .select("tenant_id")
+      .eq("tenant_id", tenantId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setTrelloConfigured(!!data);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
+  const hasTrello = Object.values(clientsByAgent).some((list) => list.length > 0) || trelloConfigured;
   const dirty = name !== tenantName;
 
   async function handleSave() {
@@ -157,7 +187,7 @@ export function SettingsPage() {
               status={zapiInstances.length > 0 ? `Conectado (${zapiInstances.length})` : "Não configurado"}
               connected={zapiInstances.length > 0}
               cta={zapiInstances.length > 0 ? "Gerenciar" : "Configurar"}
-              onClick={() => document.getElementById("zapi-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              onClick={() => setActiveModal("zapi")}
             />
             <IntegrationStatus
               icon={Workflow}
@@ -165,6 +195,8 @@ export function SettingsPage() {
               desc="Boards de acompanhamento dos clientes"
               status={hasTrello ? "Conectado" : "Não configurado"}
               connected={hasTrello}
+              cta={hasTrello ? "Gerenciar" : "Configurar"}
+              onClick={() => setActiveModal("trello")}
             />
             <IntegrationStatus
               icon={Landmark}
@@ -200,14 +232,47 @@ export function SettingsPage() {
               status={externalApiNames.length > 0 ? `Conectado (${externalApiNames.length})` : "Não configurado"}
               connected={externalApiNames.length > 0}
               cta={externalApiNames.length > 0 ? "Gerenciar" : "Configurar"}
-              onClick={() => document.getElementById("external-apis-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              onClick={() => setActiveModal("external")}
             />
           </div>
         </Card>
-
-        <ZapiSection instances={zapiInstances} agents={agents} tenantId={tenantId} onChange={refetch} />
-        <ExternalApisSection tenantId={tenantId} preset={preset} onPresetConsumed={() => setPreset(null)} onApisChange={(rows) => setExternalApiNames(rows.map((r) => r.name))} />
       </div>
+
+      <Modal
+        open={activeModal === "zapi"}
+        onClose={() => setActiveModal(null)}
+        title="Instâncias Z-API"
+        description="Credenciais do WhatsApp dos seus agentes. Pode ter mais de uma instância — um agente novo escolhe qual usar na criação."
+      >
+        <ZapiSection instances={zapiInstances} agents={agents} tenantId={tenantId} onChange={refetch} />
+      </Modal>
+
+      <Modal
+        open={activeModal === "trello"}
+        onClose={() => setActiveModal(null)}
+        title="Trello"
+        description="Credencial usada pelos agentes pra consultar boards e cards dos seus clientes."
+      >
+        <TrelloSection tenantId={tenantId} onConfigured={setTrelloConfigured} />
+      </Modal>
+
+      <Modal
+        open={activeModal === "external"}
+        onClose={() => {
+          setActiveModal(null);
+          setPreset(null);
+        }}
+        title="APIs externas"
+        description="Cadastre qualquer API que queira consumir (ERP, financeiro, sistema interno) e mapeie as rotas que importam, com o que cada uma retorna."
+        maxWidth="max-w-2xl"
+      >
+        <ExternalApisSection
+          tenantId={tenantId}
+          preset={preset}
+          onPresetConsumed={() => setPreset(null)}
+          onApisChange={(rows) => setExternalApiNames(rows.map((r) => r.name))}
+        />
+      </Modal>
     </DashboardLayout>
   );
 }
@@ -315,15 +380,8 @@ function ZapiSection({
   }
 
   return (
-    <Card className="mt-4 p-6" id="zapi-section">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-ivory font-medium mb-1">Instâncias Z-API</h2>
-          <p className="text-steel text-sm">
-            Credenciais do WhatsApp dos seus agentes. Pode ter mais de uma instância — um agente novo escolhe
-            qual usar na criação.
-          </p>
-        </div>
+    <div>
+      <div className="flex items-center justify-end">
         <Button variant="secondary" size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus size={14} /> Nova instância
         </Button>
@@ -407,7 +465,7 @@ function ZapiSection({
           </div>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -546,15 +604,8 @@ function ExternalApisSection({
   }
 
   return (
-    <Card className="mt-4 p-6" id="external-apis-section">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-ivory font-medium mb-1">APIs externas</h2>
-          <p className="text-steel text-sm">
-            Cadastre qualquer API que queira consumir (ERP, financeiro, sistema interno) e mapeie as rotas que
-            importam, com o que cada uma retorna.
-          </p>
-        </div>
+    <div>
+      <div className="flex items-center justify-end">
         <Button variant="secondary" size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus size={14} /> Nova API
         </Button>
@@ -721,6 +772,123 @@ function ExternalApisSection({
           );
         })}
       </div>
-    </Card>
+    </div>
+  );
+}
+
+// ─── Trello: credencial única por tenant ──────────────────────────────
+function TrelloSection({
+  tenantId,
+  onConfigured,
+}: {
+  tenantId: string;
+  onConfigured?: (configured: boolean) => void;
+}) {
+  const [apiKey, setApiKey] = useState("");
+  const [apiToken, setApiToken] = useState("");
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+    supabase
+      .from("trello_credentials")
+      .select("api_key,api_token,updated_at")
+      .eq("tenant_id", tenantId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data) {
+          setApiKey(data.api_key);
+          setApiToken(data.api_token);
+          setSavedAt(data.updated_at);
+        }
+        onConfigured?.(!!data);
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId]);
+
+  async function handleSave() {
+    if (!tenantId || !apiKey.trim() || !apiToken.trim()) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("trello_credentials")
+      .upsert(
+        { tenant_id: tenantId, api_key: apiKey.trim(), api_token: apiToken.trim(), updated_at: new Date().toISOString() },
+        { onConflict: "tenant_id" }
+      );
+    setSaving(false);
+    if (!error) {
+      setSavedAt(new Date().toISOString());
+      onConfigured?.(true);
+    }
+  }
+
+  async function handleRemove() {
+    if (!window.confirm("Remover a credencial do Trello? Os agentes que dependem dela deixam de responder sobre boards.")) return;
+    setRemoving(true);
+    await supabase.from("trello_credentials").delete().eq("tenant_id", tenantId);
+    setRemoving(false);
+    setApiKey("");
+    setApiToken("");
+    setSavedAt(null);
+    onConfigured?.(false);
+  }
+
+  if (loading) return <p className="text-steel text-sm">Carregando...</p>;
+
+  return (
+    <div>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div>
+          <Label>API Key</Label>
+          <Input value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+        </div>
+        <div>
+          <Label>Token</Label>
+          <div className="relative">
+            <Input
+              type={revealed ? "text" : "password"}
+              value={apiToken}
+              onChange={(e) => setApiToken(e.target.value)}
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setRevealed((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-steel hover:text-ivory"
+              aria-label="Mostrar/ocultar token"
+            >
+              {revealed ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          </div>
+        </div>
+      </div>
+      <p className="text-steel text-xs mt-2">
+        Gere em{" "}
+        <a href="https://trello.com/power-ups/admin" target="_blank" rel="noreferrer" className="text-electric-blue">
+          trello.com/power-ups/admin
+        </a>{" "}
+        (criar um Power-Up seu dá acesso a API Key + Token).
+      </p>
+      <div className="flex items-center gap-2 mt-4">
+        <Button size="sm" onClick={handleSave} disabled={saving || !apiKey.trim() || !apiToken.trim()}>
+          {saving ? "Salvando..." : "Salvar credencial"}
+        </Button>
+        {savedAt && (
+          <Button variant="secondary" size="sm" onClick={handleRemove} disabled={removing}>
+            {removing ? "Removendo..." : "Remover"}
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
