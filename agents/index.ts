@@ -40,6 +40,7 @@ interface DbAgent {
   name: string;
   enabled: boolean;
   claude_model: string | null;
+  tenant_id: string;
   zapi_instances: DbZapiInstance | null; // embed via FK (agents.zapi_instance_id -> zapi_instances.id)
 }
 
@@ -64,15 +65,27 @@ async function fetchBrainContent(agentId: string): Promise<string> {
   return rows[0]?.content ?? "";
 }
 
+// Sem FK direta entre agents e trello_credentials (ambas apontam pra tenants,
+// não uma pra outra), então o embed do PostgREST não funciona aqui -- busca
+// separada por tenant_id, igual o brain é buscado por agent_id.
+async function fetchTrelloCredential(tenantId: string): Promise<{ key: string; token: string } | undefined> {
+  const rows = await sbGet<{ api_key: string; api_token: string }[]>(
+    `/trello_credentials?tenant_id=eq.${encodeURIComponent(tenantId)}&select=api_key,api_token`
+  );
+  const row = rows[0];
+  return row ? { key: row.api_key, token: row.api_token } : undefined;
+}
+
 async function buildAgentConfig(dbAgent: DbAgent): Promise<AgentConfig> {
   // boards.agent_id liga direto ao agente; o embed `clients(...)` traz o label do
   // cliente numa query só (cliente pode ser acompanhado por mais de um agente do
   // mesmo tenant, então o vínculo relevante aqui é sempre por board, não por cliente).
-  const [boardRows, brainContent] = await Promise.all([
+  const [boardRows, brainContent, trello] = await Promise.all([
     sbGet<DbBoardWithClient[]>(
       `/boards?agent_id=eq.${encodeURIComponent(dbAgent.id)}&select=trello_board_id,monitored_lists,clients(id,label)`
     ),
     fetchBrainContent(dbAgent.id),
+    fetchTrelloCredential(dbAgent.tenant_id),
   ]);
 
   const boards: AgentBoard[] = boardRows
@@ -101,6 +114,7 @@ async function buildAgentConfig(dbAgent: DbAgent): Promise<AgentConfig> {
     claudeModel: dbAgent.claude_model ?? undefined,
     enabled: dbAgent.enabled,
     zapi,
+    trello,
   };
 }
 

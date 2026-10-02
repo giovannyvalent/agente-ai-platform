@@ -31,6 +31,12 @@ export interface AgentConfig {
     clientToken?: string;
     baseUrl?: string;
   };
+  /** Credencial Trello cadastrada pelo tenant no painel (tabela trello_credentials).
+   * Se ausente, trelloCreds() cai pro fallback de env var compartilhada. */
+  trello?: {
+    key: string;
+    token: string;
+  };
   /** Modelo Claude usado por este agente (opcional, padrão definido em lib/claude.ts) */
   claudeModel?: string;
   /** Precisa estar true para o agente rodar no cron e aparecer como ativo */

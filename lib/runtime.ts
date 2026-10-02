@@ -28,6 +28,7 @@ export function zapiCreds(agent: AgentConfig): ZApiCreds {
 }
 
 function trelloCreds(agent: AgentConfig): TrelloCreds {
+  if (agent.trello) return { key: agent.trello.key, token: agent.trello.token };
   return {
     key: getAgentEnv(agent.id, "TRELLO_API_KEY"),
     token: getAgentEnv(agent.id, "TRELLO_API_TOKEN"),

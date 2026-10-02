@@ -9,7 +9,11 @@ import type { TrelloCreds, TrelloList } from "./trello.js";
  * isso pode virar uma das "ferramentas" que a IA chama, mas por ora roda sozinho.
  */
 
+// Credencial cadastrada pelo tenant (tabela trello_credentials) tem
+// prioridade; env var compartilhada é o fallback (continua funcionando sem
+// precisar migrar quem já está rodando com ela).
 function trelloCreds(agent: AgentConfig): TrelloCreds {
+  if (agent.trello) return { key: agent.trello.key, token: agent.trello.token };
   return {
     key: getAgentEnv(agent.id, "TRELLO_API_KEY"),
     token: getAgentEnv(agent.id, "TRELLO_API_TOKEN"),
