@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import { getAgent, listEnabledAgents } from "../agents/index.js";
 import { handleIncomingWhatsApp, handleIncomingTrelloEvent, runMonitorCycle } from "../lib/runtime.js";
+import { isValidIncoming } from "../lib/zapi.js";
 import type { ZApiPayload } from "../lib/zapi.js";
 import { getDispatchByToken, touchDispatch } from "../lib/dispatches.js";
 import { runDispatch } from "../lib/dispatch-runner.js";
@@ -12,7 +13,7 @@ import {
   sendAmOpsMessage,
   type GerenteRun,
 } from "../agents/am-ops/report.js";
-import { AM_ALANA_PHONE, AM_RONDA_COLLABORATOR_PHONE } from "../agents/am-ops/config.js";
+import { AM_OPS_ALLOWED_SENDERS } from "../agents/am-ops/config.js";
 
 const app = express();
 app.use(express.json());
@@ -205,7 +206,7 @@ app.get("/api/debug/am-ops/gerente/:run", async (req: Request, res: Response) =>
   }
   try {
     const report = await generateGerenteReport(run);
-    if (req.query.send === "true") await sendAmOpsMessage(AM_ALANA_PHONE, report);
+    if (req.query.send === "true") await sendAmOpsMessage(report);
     res.status(200).json({ ok: true, sent: req.query.send === "true", report });
   } catch (err) {
     res.status(500).json({ ok: false, error: (err as Error).message });
@@ -219,7 +220,7 @@ app.get("/api/debug/am-ops/ronda", async (req: Request, res: Response) => {
   }
   try {
     const report = await generateRondaReport();
-    if (req.query.send === "true") await sendAmOpsMessage(AM_RONDA_COLLABORATOR_PHONE, report);
+    if (req.query.send === "true") await sendAmOpsMessage(report);
     res.status(200).json({ ok: true, sent: req.query.send === "true", report });
   } catch (err) {
     res.status(500).json({ ok: false, error: (err as Error).message });
@@ -233,11 +234,33 @@ app.get("/api/debug/am-ops/planejamento", async (req: Request, res: Response) =>
   }
   try {
     const report = await generatePlanejamentoReport();
-    if (req.query.send === "true") await sendAmOpsMessage(AM_RONDA_COLLABORATOR_PHONE, report);
+    if (req.query.send === "true") await sendAmOpsMessage(report);
     res.status(200).json({ ok: true, sent: req.query.send === "true", report });
   } catch (err) {
     res.status(500).json({ ok: false, error: (err as Error).message });
   }
+});
+
+// Webhook de entrada da instância Z-API da AM — só existe pra garantir o
+// filtro: esse número só responde/encaminha pra Alana e Giovanny
+// (AM_OPS_ALLOWED_SENDERS), qualquer outro remetente é ignorado em silêncio.
+// Configurar na Z-API: https://SEU-DEPLOY.vercel.app/api/webhook/whatsapp/am-ops
+app.post("/api/webhook/whatsapp/am-ops", async (req: Request, res: Response) => {
+  const payload = req.body as ZApiPayload;
+  if (!isValidIncoming(payload)) {
+    res.status(200).json({ ok: true });
+    return;
+  }
+
+  const sender = (payload.participantPhone ?? payload.phone).replace(/\D/g, "");
+  if (!AM_OPS_ALLOWED_SENDERS.some((p) => p.replace(/\D/g, "") === sender)) {
+    res.status(200).json({ ok: true }); // remetente fora da lista — ignora em silêncio
+    return;
+  }
+
+  // Por ora os agentes da AM são só de entrega (push), sem comando
+  // conversacional — mensagem de remetente permitido só é confirmada, sem resposta.
+  res.status(200).json({ ok: true });
 });
 
 // ─── HEALTH ────────────────────────────────────────────────────────

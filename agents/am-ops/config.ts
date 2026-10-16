@@ -43,10 +43,18 @@ export const AM_COLLABORATORS: AmCollaborator[] = [
 // reais (não existe lista "Concluído"). Ver seção 4 do briefing.
 export const AM_PRONTO_DEFINITION_CONFIRMED = false;
 
-// TODO: números de WhatsApp (formato 55DDXXXXXXXXX) de quem recebe cada
-// relatório — Alana (Agente G) e a colaboradora da ronda (Agentes R e P).
-export const AM_ALANA_PHONE = "";
-export const AM_RONDA_COLLABORATOR_PHONE = "";
+// Mesmos números já usados no brain do agente original (gestao-marketing,
+// ver supabase/migrations/20260930000001_schema_inicial.sql). Por ora os
+// relatórios de todos os 3 agentes (G, R e P) vão pros dois — ainda falta
+// confirmar se a colaboradora da ronda tem número próprio (ver TODO acima).
+export const AM_ALANA_PHONE = "5511966477472";
+export const AM_GIOVANNY_PHONE = "5591981628017";
+export const AM_RONDA_COLLABORATOR_PHONE = AM_ALANA_PHONE; // TODO: trocar quando tiver o número dela
+
+// Único filtro de quem o número de WhatsApp dos agentes da AM responde ou
+// encaminha — qualquer remetente fora dessa lista é ignorado em silêncio
+// (mesmo padrão de lib/runtime.ts, aplicado aqui pra essa instância própria).
+export const AM_OPS_ALLOWED_SENDERS = [AM_ALANA_PHONE, AM_GIOVANNY_PHONE];
 
 export function trelloCreds() {
   return { key: process.env.TRELLO_API_KEY, token: process.env.TRELLO_API_TOKEN };

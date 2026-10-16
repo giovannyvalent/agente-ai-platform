@@ -1,7 +1,7 @@
 import { getLists, getBoardCardsDetailed, type TrelloCardDetailed } from "../../lib/trello.js";
-import { askClaude } from "../../lib/claude.js";
+import { askOpenAI } from "../../lib/openai.js";
 import { sendTextMessage } from "../../lib/zapi.js";
-import { AM_CLIENT_BOARDS, trelloCreds, zapiCreds } from "./config.js";
+import { AM_CLIENT_BOARDS, AM_OPS_ALLOWED_SENDERS, trelloCreds, zapiCreds } from "./config.js";
 import { GERENTE_SYSTEM_PROMPT, RONDA_SYSTEM_PROMPT, PLANEJAMENTO_SYSTEM_PROMPT } from "./prompts.js";
 
 const WEEKDAY_PT = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
@@ -62,22 +62,26 @@ export async function generateGerenteReport(run: GerenteRun): Promise<string> {
     "balanco-semana": "Hoje é sexta-feira: este é o BALANÇO DA SEMANA (substitui o fechamento normal).",
   };
   const prompt = `${nowContext()}\n${runLabel[run]}\n\nDADOS DOS BOARDS (um por cliente):\n\n${context}`;
-  return askClaude({ system: GERENTE_SYSTEM_PROMPT, prompt, maxTokens: 4000 });
+  return askOpenAI({ system: GERENTE_SYSTEM_PROMPT, prompt, maxTokens: 4000 });
 }
 
 export async function generateRondaReport(): Promise<string> {
   const context = await fetchAllBoardsContext();
   const prompt = `${nowContext()}\nHoje é dia de ronda.\n\nDADOS DOS BOARDS (um por cliente):\n\n${context}`;
-  return askClaude({ system: RONDA_SYSTEM_PROMPT, prompt, maxTokens: 4000 });
+  return askOpenAI({ system: RONDA_SYSTEM_PROMPT, prompt, maxTokens: 4000 });
 }
 
 export async function generatePlanejamentoReport(): Promise<string> {
   const context = await fetchAllBoardsContext();
   const prompt = `${nowContext()}\nHoje é quarta-feira: planejamento da próxima semana.\n\nDADOS DOS BOARDS (um por cliente):\n\n${context}`;
-  return askClaude({ system: PLANEJAMENTO_SYSTEM_PROMPT, prompt, maxTokens: 4000 });
+  return askOpenAI({ system: PLANEJAMENTO_SYSTEM_PROMPT, prompt, maxTokens: 4000 });
 }
 
-export async function sendAmOpsMessage(phone: string, text: string): Promise<void> {
-  if (!phone) throw new Error("Telefone de destino não configurado (AM_ALANA_PHONE / AM_RONDA_COLLABORATOR_PHONE)");
-  await sendTextMessage(zapiCreds(), phone, text);
+// Por ora os 3 agentes (G, R e P) entregam pros mesmos dois números
+// (AM_OPS_ALLOWED_SENDERS) — mesma lista que também é o único filtro de quem
+// o WhatsApp responde/encaminha. Ajustar quando a colaboradora da ronda tiver
+// número próprio confirmado.
+export async function sendAmOpsMessage(text: string): Promise<void> {
+  const creds = zapiCreds();
+  await Promise.all(AM_OPS_ALLOWED_SENDERS.map((phone) => sendTextMessage(creds, phone, text)));
 }
