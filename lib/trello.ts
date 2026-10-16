@@ -13,7 +13,8 @@ const BASE = "https://api.trello.com/1";
 
 async function trelloGet<T>(creds: TrelloCreds, path: string): Promise<T> {
   requireCreds(creds);
-  const res = await fetch(`${BASE}${path}?key=${creds.key}&token=${creds.token}`);
+  const sep = path.includes("?") ? "&" : "?";
+  const res = await fetch(`${BASE}${path}${sep}key=${creds.key}&token=${creds.token}`);
   if (!res.ok) throw new Error(`Trello error (${path}): ${res.status} ${await res.text()}`);
   return res.json() as Promise<T>;
 }
@@ -32,6 +33,30 @@ export interface TrelloCard {
   idMembers: string[];
   labels: { id: string; name: string; color: string }[];
   shortUrl: string;
+}
+
+export interface TrelloBoardSummary {
+  id: string;
+  name: string;
+  url: string;
+  closed: boolean;
+}
+
+export interface TrelloMember {
+  id: string;
+  username: string;
+  fullName: string;
+}
+
+// Usado só pra descobrir boards/membros reais com a credencial já configurada
+// (ex.: montar a config de um cliente novo) — não faz parte do fluxo de leitura
+// recorrente dos agentes.
+export async function listMyBoards(creds: TrelloCreds): Promise<TrelloBoardSummary[]> {
+  return trelloGet<TrelloBoardSummary[]>(creds, `/members/me/boards?fields=name,url,closed`);
+}
+
+export async function getBoardMembers(creds: TrelloCreds, boardId: string): Promise<TrelloMember[]> {
+  return trelloGet<TrelloMember[]>(creds, `/boards/${boardId}/members?fields=username,fullName`);
 }
 
 export async function getLists(creds: TrelloCreds, boardId: string): Promise<TrelloList[]> {

@@ -4,6 +4,7 @@ import { handleIncomingWhatsApp, handleIncomingTrelloEvent, runMonitorCycle } fr
 import type { ZApiPayload } from "../lib/zapi.js";
 import { getDispatchByToken, touchDispatch } from "../lib/dispatches.js";
 import { runDispatch } from "../lib/dispatch-runner.js";
+import { listMyBoards, getLists, getBoardMembers } from "../lib/trello.js";
 
 const app = express();
 app.use(express.json());
@@ -108,6 +109,48 @@ app.all("/api/dispatch/:token", async (req: Request, res: Response) => {
     res.status(200).json({ ok: true, result });
   } catch (err) {
     console.error("[dispatch] erro:", (err as Error).message);
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
+});
+
+// ─── DEBUG TEMPORÁRIO — descobrir boards/listas/membros reais do Trello ──
+// Usa a credencial global (TRELLO_API_KEY/TRELLO_API_TOKEN, env var, sem
+// depender do Supabase) só pra montar a config dos agentes da AM. Remover
+// depois que os boards/listas/membros estiverem confirmados e configurados.
+function debugTrelloCreds() {
+  return { key: process.env.TRELLO_API_KEY, token: process.env.TRELLO_API_TOKEN };
+}
+
+function checkDebugSecret(req: Request): boolean {
+  return req.headers.authorization === `Bearer ${process.env.DEBUG_TRELLO_SECRET}`;
+}
+
+app.get("/api/debug/trello-boards", async (req: Request, res: Response) => {
+  if (!checkDebugSecret(req)) {
+    res.status(401).json({ ok: false });
+    return;
+  }
+  try {
+    const boards = await listMyBoards(debugTrelloCreds());
+    res.status(200).json({ ok: true, boards: boards.filter((b) => !b.closed) });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
+});
+
+app.get("/api/debug/trello-boards/:boardId", async (req: Request, res: Response) => {
+  if (!checkDebugSecret(req)) {
+    res.status(401).json({ ok: false });
+    return;
+  }
+  try {
+    const creds = debugTrelloCreds();
+    const [lists, members] = await Promise.all([
+      getLists(creds, req.params.boardId as string),
+      getBoardMembers(creds, req.params.boardId as string),
+    ]);
+    res.status(200).json({ ok: true, lists, members });
+  } catch (err) {
     res.status(500).json({ ok: false, error: (err as Error).message });
   }
 });
