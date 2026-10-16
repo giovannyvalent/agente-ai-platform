@@ -241,6 +241,26 @@ app.get("/api/debug/am-ops/planejamento", async (req: Request, res: Response) =>
   }
 });
 
+// Envio avulso (texto livre) pros dois números da AM — usado pra pedir
+// confirmação de coisas pontuais sem precisar gerar relatório completo.
+app.post("/api/debug/am-ops/send-raw", async (req: Request, res: Response) => {
+  if (!checkDebugSecret(req)) {
+    res.status(401).json({ ok: false });
+    return;
+  }
+  const text = (req.body as { text?: string })?.text;
+  if (!text) {
+    res.status(400).json({ ok: false, error: "corpo precisa ter { text }" });
+    return;
+  }
+  try {
+    await sendAmOpsMessage(text);
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
+});
+
 // Webhook de entrada da instância Z-API da AM — só existe pra garantir o
 // filtro: esse número só responde/encaminha pra Alana e Giovanny
 // (AM_OPS_ALLOWED_SENDERS), qualquer outro remetente é ignorado em silêncio.
