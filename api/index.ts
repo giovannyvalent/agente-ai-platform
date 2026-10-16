@@ -5,6 +5,14 @@ import type { ZApiPayload } from "../lib/zapi.js";
 import { getDispatchByToken, touchDispatch } from "../lib/dispatches.js";
 import { runDispatch } from "../lib/dispatch-runner.js";
 import { listMyBoards, getLists, getBoardMembers } from "../lib/trello.js";
+import {
+  generateGerenteReport,
+  generateRondaReport,
+  generatePlanejamentoReport,
+  sendAmOpsMessage,
+  type GerenteRun,
+} from "../agents/am-ops/report.js";
+import { AM_ALANA_PHONE, AM_RONDA_COLLABORATOR_PHONE } from "../agents/am-ops/config.js";
 
 const app = express();
 app.use(express.json());
@@ -172,6 +180,61 @@ app.get("/api/debug/zapi-status", async (req: Request, res: Response) => {
     });
     const body = await r.text();
     res.status(200).json({ ok: true, httpStatus: r.status, body });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
+});
+
+// ─── AM OPS — agentes da Alana (Gerente/Ronda/Planejamento) ─────────
+// Modo dry-run por padrão: só gera e devolve o texto (não envia WhatsApp),
+// pra revisar qualidade antes de ativar envio de verdade pra cliente real.
+// ?send=true efetivamente manda. Ainda não tem cron automático ligado —
+// falta confirmar mapeamento de colaboradoras, definição de "pronto" e os
+// números de telefone (ver agents/am-ops/config.ts).
+const GERENTE_RUNS: GerenteRun[] = ["abertura", "fechamento", "relatorio-semana", "balanco-semana"];
+
+app.get("/api/debug/am-ops/gerente/:run", async (req: Request, res: Response) => {
+  if (!checkDebugSecret(req)) {
+    res.status(401).json({ ok: false });
+    return;
+  }
+  const run = req.params.run as GerenteRun;
+  if (!GERENTE_RUNS.includes(run)) {
+    res.status(400).json({ ok: false, error: `run inválido, use um de: ${GERENTE_RUNS.join(", ")}` });
+    return;
+  }
+  try {
+    const report = await generateGerenteReport(run);
+    if (req.query.send === "true") await sendAmOpsMessage(AM_ALANA_PHONE, report);
+    res.status(200).json({ ok: true, sent: req.query.send === "true", report });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
+});
+
+app.get("/api/debug/am-ops/ronda", async (req: Request, res: Response) => {
+  if (!checkDebugSecret(req)) {
+    res.status(401).json({ ok: false });
+    return;
+  }
+  try {
+    const report = await generateRondaReport();
+    if (req.query.send === "true") await sendAmOpsMessage(AM_RONDA_COLLABORATOR_PHONE, report);
+    res.status(200).json({ ok: true, sent: req.query.send === "true", report });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
+});
+
+app.get("/api/debug/am-ops/planejamento", async (req: Request, res: Response) => {
+  if (!checkDebugSecret(req)) {
+    res.status(401).json({ ok: false });
+    return;
+  }
+  try {
+    const report = await generatePlanejamentoReport();
+    if (req.query.send === "true") await sendAmOpsMessage(AM_RONDA_COLLABORATOR_PHONE, report);
+    res.status(200).json({ ok: true, sent: req.query.send === "true", report });
   } catch (err) {
     res.status(500).json({ ok: false, error: (err as Error).message });
   }

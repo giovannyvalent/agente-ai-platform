@@ -71,6 +71,64 @@ export async function getCard(creds: TrelloCreds, cardId: string): Promise<Trell
   return trelloGet<TrelloCard>(creds, `/cards/${cardId}`);
 }
 
+export interface TrelloChecklistItem {
+  name: string;
+  state: "complete" | "incomplete";
+}
+
+export interface TrelloChecklist {
+  name: string;
+  checkItems: TrelloChecklistItem[];
+}
+
+export interface TrelloComment {
+  date: string;
+  text: string;
+  memberName: string;
+}
+
+export interface TrelloCardDetailed extends TrelloCard {
+  dateLastActivity: string;
+  checklists: TrelloChecklist[];
+  comments: TrelloComment[];
+  memberNames: string[];
+}
+
+interface RawDetailedCard extends TrelloCard {
+  dateLastActivity: string;
+  checklists?: { name: string; checkItems?: { name: string; state: string }[] }[];
+  members?: { fullName: string }[];
+  actions?: { type: string; date: string; data: { text?: string }; memberCreator?: { fullName: string } }[];
+}
+
+// Uma chamada só por board traz tudo que os agentes de relatório precisam:
+// checklist (pra "Feita"), comentários (pra contar "Cobrança N"), membros e
+// data da última atividade (pra "Parada"). Evita N+1 requisição por card.
+export async function getBoardCardsDetailed(creds: TrelloCreds, boardId: string): Promise<TrelloCardDetailed[]> {
+  const path =
+    `/boards/${boardId}/cards` +
+    `?fields=name,due,dueComplete,idList,idMembers,labels,shortUrl,dateLastActivity` +
+    `&checklists=all&checklist_fields=name` +
+    `&members=true&member_fields=fullName` +
+    `&actions=commentCard&actions_limit=50&action_fields=date,data`;
+  const raw = await trelloGet<RawDetailedCard[]>(creds, path);
+
+  return raw.map((c) => ({
+    ...c,
+    checklists: (c.checklists ?? []).map((cl) => ({
+      name: cl.name,
+      checkItems: (cl.checkItems ?? []).map((ci) => ({
+        name: ci.name,
+        state: ci.state as "complete" | "incomplete",
+      })),
+    })),
+    comments: (c.actions ?? [])
+      .filter((a) => a.type === "commentCard")
+      .map((a) => ({ date: a.date, text: a.data.text ?? "", memberName: a.memberCreator?.fullName ?? "" })),
+    memberNames: (c.members ?? []).map((m) => m.fullName),
+  }));
+}
+
 export async function addComment(creds: TrelloCreds, cardId: string, text: string): Promise<void> {
   requireCreds(creds);
   const res = await fetch(
