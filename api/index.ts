@@ -155,6 +155,28 @@ app.get("/api/debug/trello-boards/:boardId", async (req: Request, res: Response)
   }
 });
 
+// ─── DEBUG TEMPORÁRIO — checar status da instância Z-API da AM ──────
+// O client-token é de conta (não por instância) no Z-API — reaproveita o que
+// já está configurado pro agente gestao-marketing, já que é a mesma conta.
+app.get("/api/debug/zapi-status", async (req: Request, res: Response) => {
+  if (!checkDebugSecret(req)) {
+    res.status(401).json({ ok: false });
+    return;
+  }
+  const instanceId = process.env.AM_OPS_ZAPI_INSTANCE_ID;
+  const token = process.env.AM_OPS_ZAPI_TOKEN;
+  const clientToken = process.env.GESTAO_MARKETING_ZAPI_CLIENT_TOKEN;
+  try {
+    const r = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/status`, {
+      headers: { "Client-Token": clientToken ?? "" },
+    });
+    const body = await r.text();
+    res.status(200).json({ ok: true, httpStatus: r.status, body });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
+});
+
 // ─── HEALTH ────────────────────────────────────────────────────────
 app.get("/api/health", async (_req: Request, res: Response) => {
   const agents = await listEnabledAgents();
