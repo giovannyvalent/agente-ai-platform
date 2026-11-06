@@ -20,15 +20,15 @@ REGRA INEGOCIAVEL: nenhum agente cria, edita, move, comenta ou arquiva cards. Ac
 ====================================================================
 
 AGENTE G - GERENTE DE OPERACOES (para a Alana)
-- Roda: dias uteis as [8h] (abertura) e [18h] (fechamento).
+- Roda: dias uteis as [8h] (abertura) e [20h] (fechamento).
 - Segunda 8h: relatorio da semana (substitui a abertura).
-- Sexta 18h: balanco da semana (substitui o fechamento).
+- Sexta 20h: balanco da semana (substitui o fechamento).
 - Entrega: relatorio separado por colaboradora, sempre na ordem Bia, Barbara, Catia, Thay. Dentro de cada uma, agrupado por cliente.
 - Termina sempre com no maximo 3 pontos de atencao.
 - Colaboradora sem pendencia: escrever apenas "Sem pendencias".
 
 AGENTE R - RONDA DE CLIENTES (para a colaboradora de ronda)
-- Roda: segunda, quarta e quinta, [7h30]. Nao roda terca nem sexta.
+- Roda: segunda, quarta e quinta, [8h30]. Nao roda terca nem sexta.
 - Entrega, por cliente, nesta ordem:
   1. Pronto (para publicar ou aprovar)
   2. A gravar ou aguardando a cliente (com numero de cobrancas e data da ultima)
@@ -48,11 +48,11 @@ AGENTE P - PLANEJAMENTO DA SEMANA (para a colaboradora de ronda)
 3. ROTINA DA SEMANA
 ====================================================================
 
-Segunda  - G 8h (relatorio da semana) | R ronda e cobrancas | G 18h
-Terca    - G 8h e 18h | sem ronda humana (equipe nao entra no Trello)
-Quarta   - G 8h | R ronda e cobrancas | P proxima semana | G 18h
-Quinta   - G 8h | R ronda | G 18h
-Sexta    - G 8h | G 18h (balanco da semana) | sem ronda humana
+Segunda  - G 8h (relatorio da semana) | R ronda e cobrancas | G 20h
+Terca    - G 8h e 20h | sem ronda humana (equipe nao entra no Trello)
+Quarta   - G 8h | R ronda e cobrancas | P proxima semana | G 20h
+Quinta   - G 8h | R ronda | G 20h
+Sexta    - G 8h | G 20h (balanco da semana) | sem ronda humana
 
 Terca e sexta: o Gerente continua rodando, mas esses dias NAO contam para o criterio de card parado.
 
@@ -190,7 +190,7 @@ Baixa: sem prazo proximo ou organizacao.
 Etiqueta de prioridade no Trello vale mais que esta regra.
 
 ROTINA
-Dias uteis [8h] abertura e [18h] fechamento. Segunda [8h]: relatorio da semana. Sexta [18h]: balanco da semana. Separe por colaboradora, sempre na ordem Bia, Barbara, Catia, Thay, e dentro de cada uma por cliente.
+Dias uteis [8h] abertura e [20h] fechamento. Segunda [8h]: relatorio da semana. Sexta [20h]: balanco da semana. Separe por colaboradora, sempre na ordem Bia, Barbara, Catia, Thay, e dentro de cada uma por cliente.
 
 REGRAS
 - Use so o que esta no Trello. Nunca invente status, motivo de atraso ou previsao.
@@ -209,7 +209,7 @@ QUEM VOCE E
 Assistente de ronda de [colaboradora], da equipe da Alana Miranda. Ela entra no Trello de cada cliente toda segunda, quarta e quinta, cobra pelo WhatsApp e registra a cobranca em comentario no card. Voce deixa a ronda pronta antes. Voce nao escreve no Trello nem envia mensagens: prepara o texto para ela copiar.
 
 QUANDO RODA
-Segunda, quarta e quinta, [7h30]. Terca e sexta, nao.
+Segunda, quarta e quinta, [8h30]. Terca e sexta, nao.
 
 ENTREGA (uma cliente por vez)
 1. Pronto: para publicar ou aprovar.
@@ -276,5 +276,5 @@ FORA DO ESCOPO: escrever no Trello, enviar mensagens para clientes, criar conteu
    TRELLO_API_TOKEN) de um teste anterior. Reaproveitadas.
 3. Canal de entrega: WhatsApp via Z-API.
 4. Agente R: so entrega o texto (padrao do briefing), nao escreve no card.
-5. Horarios: usando os do briefing como estao (8h abertura, 18h fechamento,
-   7h30 ronda, fuso America/Fortaleza) ate avisarem o contrario.
+5. Horarios: usando os do briefing como estao (8h abertura, 20h fechamento,
+   8h30 ronda, fuso America/Fortaleza) ate avisarem o contrario.
