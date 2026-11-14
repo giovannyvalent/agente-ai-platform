@@ -209,6 +209,32 @@ app.get("/api/debug/anser/zapi-status", async (req: Request, res: Response) => {
   }
 });
 
+// Lista os grupos de WhatsApp visíveis na instância da Anser, pra decidir
+// com o cliente quais entram no monitoramento e quais ficam de fora.
+app.get("/api/debug/anser/groups", async (req: Request, res: Response) => {
+  if (!checkDebugSecret(req)) {
+    res.status(401).json({ ok: false });
+    return;
+  }
+  const instanceId = process.env.ANSER_ZAPI_INSTANCE_ID;
+  const token = process.env.ANSER_ZAPI_TOKEN;
+  const clientToken = process.env.ANSER_ZAPI_CLIENT_TOKEN ?? "";
+  try {
+    const page = req.query.page ?? "1";
+    const r = await fetch(
+      `https://api.z-api.io/instances/${instanceId}/token/${token}/chats?page=${page}&pageSize=100`,
+      { headers: { "Client-Token": clientToken } }
+    );
+    const body = await r.json();
+    const groups = Array.isArray(body)
+      ? body.filter((c: { isGroup?: boolean }) => c.isGroup).map((c: { phone: string; name?: string }) => ({ id: c.phone, name: c.name }))
+      : body;
+    res.status(200).json({ ok: true, httpStatus: r.status, groups, raw: Array.isArray(body) ? undefined : body });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
+});
+
 // ─── AM OPS — agentes da Alana (Gerente/Ronda/Planejamento) ─────────
 // Modo dry-run por padrão: só gera e devolve o texto (não envia WhatsApp),
 // pra revisar qualidade antes de ativar envio de verdade pra cliente real.
