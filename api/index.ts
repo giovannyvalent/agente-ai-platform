@@ -186,6 +186,29 @@ app.get("/api/debug/zapi-status", async (req: Request, res: Response) => {
   }
 });
 
+// ─── DEBUG TEMPORÁRIO — checar status da instância Z-API da Anser ───
+// Tenta primeiro o client-token já usado pela AM (caso seja a mesma conta
+// Z-API) — se o instance ID/token da Anser forem de outra conta, vai falhar
+// com "client-token is not configured" e precisamos do client-token certo.
+app.get("/api/debug/anser/zapi-status", async (req: Request, res: Response) => {
+  if (!checkDebugSecret(req)) {
+    res.status(401).json({ ok: false });
+    return;
+  }
+  const instanceId = process.env.ANSER_ZAPI_INSTANCE_ID;
+  const token = process.env.ANSER_ZAPI_TOKEN;
+  const clientToken = process.env.ANSER_ZAPI_CLIENT_TOKEN || process.env.GESTAO_MARKETING_ZAPI_CLIENT_TOKEN;
+  try {
+    const r = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/status`, {
+      headers: { "Client-Token": clientToken ?? "" },
+    });
+    const body = await r.text();
+    res.status(200).json({ ok: true, httpStatus: r.status, body, usedFallbackClientToken: !process.env.ANSER_ZAPI_CLIENT_TOKEN });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
+});
+
 // ─── AM OPS — agentes da Alana (Gerente/Ronda/Planejamento) ─────────
 // Modo dry-run por padrão: só gera e devolve o texto (não envia WhatsApp),
 // pra revisar qualidade antes de ativar envio de verdade pra cliente real.
