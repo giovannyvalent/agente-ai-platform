@@ -14,6 +14,7 @@ import {
   type GerenteRun,
 } from "../agents/am-ops/report.js";
 import { AM_OPS_ALLOWED_SENDERS } from "../agents/am-ops/config.js";
+import { processAnserIncoming, sweepAnserSla } from "../agents/anser-ops/ingest.js";
 
 const app = express();
 app.use(express.json());
@@ -330,6 +331,37 @@ app.post("/api/webhook/whatsapp/am-ops", async (req: Request, res: Response) => 
   // Por ora os agentes da AM são só de entrega (push), sem comando
   // conversacional — mensagem de remetente permitido só é confirmada, sem resposta.
   res.status(200).json({ ok: true });
+});
+
+// Webhook de entrada da instância Z-API da Anser — grupos de cliente
+// monitorados (agents/anser-ops/config.ts + tabela anser_groups). Ingestão
+// roda async: sempre responde 200 rápido pra Z-API não re-tentar, e deixa o
+// processamento (classificação por IA, SLA) seguir em background.
+// Configurar na Z-API: https://SEU-DEPLOY.vercel.app/api/webhook/whatsapp/anser-ops
+app.post("/api/webhook/whatsapp/anser-ops", async (req: Request, res: Response) => {
+  const payload = req.body as ZApiPayload;
+  res.status(200).json({ ok: true });
+  try {
+    await processAnserIncoming(payload);
+  } catch (err) {
+    console.error("[anser-ops] erro ao processar mensagem:", (err as Error).message);
+  }
+});
+
+// Varredura de SLA (30/60min) — precisa de um gatilho periódico externo (cron
+// de verdade ou serviço de ping tipo cron-job.org) chamando esse endpoint a
+// cada poucos minutos; sem isso, o alerta de atraso nunca dispara sozinho.
+app.get("/api/debug/anser/sweep-sla", async (req: Request, res: Response) => {
+  if (!checkDebugSecret(req)) {
+    res.status(401).json({ ok: false });
+    return;
+  }
+  try {
+    const result = await sweepAnserSla();
+    res.status(200).json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
 });
 
 // ─── HEALTH ────────────────────────────────────────────────────────
