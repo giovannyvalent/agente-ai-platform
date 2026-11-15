@@ -11,21 +11,41 @@ function headers() {
   };
 }
 
-export interface AnserGroup {
+export interface AnserConversation {
   id: string;
   name: string;
   client_name: string | null;
+  is_group: boolean;
   active: boolean;
 }
 
-export async function getMonitoredGroup(groupId: string): Promise<AnserGroup | undefined> {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/anser_groups?id=eq.${encodeURIComponent(groupId)}&active=eq.true&select=*`,
+// Monitora TUDO por padrão (grupo ou DM) -- não existe mais lista fixa de
+// permitidos. Na primeira mensagem de uma conversa nova, registra
+// automaticamente; "active=false" é a única forma de excluir algo
+// manualmente depois (ex.: um grupo interno que não deveria ter sido criado
+// na mesma instância). Retorna undefined só quando alguém desativou
+// explicitamente essa conversa.
+export async function getOrCreateConversation(params: {
+  id: string;
+  name?: string;
+  isGroup: boolean;
+}): Promise<AnserConversation | undefined> {
+  const existing = await fetch(
+    `${SUPABASE_URL}/rest/v1/anser_conversations?id=eq.${encodeURIComponent(params.id)}&select=*`,
     { headers: headers() }
   );
-  if (!res.ok) throw new Error(`Supabase error (anser_groups): ${res.status} ${await res.text()}`);
-  const rows = (await res.json()) as AnserGroup[];
-  return rows[0];
+  if (!existing.ok) throw new Error(`Supabase error (anser_conversations select): ${existing.status} ${await existing.text()}`);
+  const rows = (await existing.json()) as AnserConversation[];
+  if (rows[0]) return rows[0].active ? rows[0] : undefined;
+
+  const created = await fetch(`${SUPABASE_URL}/rest/v1/anser_conversations`, {
+    method: "POST",
+    headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=representation,resolution=ignore-duplicates" },
+    body: JSON.stringify({ id: params.id, name: params.name ?? params.id, is_group: params.isGroup }),
+  });
+  if (!created.ok) throw new Error(`Supabase error (anser_conversations insert): ${created.status} ${await created.text()}`);
+  const createdRows = (await created.json()) as AnserConversation[];
+  return createdRows[0];
 }
 
 export async function logAnserMessage(params: {

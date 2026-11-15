@@ -2,7 +2,7 @@ import { askOpenAI } from "../../lib/openai.js";
 import { sendTextMessage } from "../../lib/zapi.js";
 import { extractText, isValidIncoming, type ZApiPayload } from "../../lib/zapi.js";
 import {
-  getMonitoredGroup,
+  getOrCreateConversation,
   logAnserMessage,
   getOpenRequestForGroup,
   createAnserRequest,
@@ -40,17 +40,23 @@ async function classifyResponse(requestSummary: string, replyText: string): Prom
   return parsed?.is_effective_response ?? false;
 }
 
-// Processa uma mensagem recebida via webhook Z-API da instância Anser. Só age
-// se o grupo estiver na lista de monitorados (agents/anser-ops/config + tabela
-// anser_groups); mensagens de grupos fora da lista são ignoradas.
+// Processa uma mensagem recebida via webhook Z-API da instância Anser.
+// Monitora TUDO por padrão -- grupo ou conversa individual (DM) -- e
+// registra a conversa automaticamente no primeiro contato (sem lista fixa de
+// permitidos). "active=false" em anser_conversations é a única forma de
+// excluir algo manualmente depois.
 export async function processAnserIncoming(payload: ZApiPayload): Promise<void> {
-  if (!payload.isGroup || !isValidIncoming(payload)) return;
-
-  const group = await getMonitoredGroup(payload.phone);
-  if (!group) return;
+  if (!isValidIncoming(payload)) return;
 
   const text = extractText(payload);
   if (!text) return;
+
+  const group = await getOrCreateConversation({
+    id: payload.phone,
+    name: payload.chatName ?? payload.senderName,
+    isGroup: payload.isGroup,
+  });
+  if (!group) return; // conversa desativada manualmente
 
   const senderPhone = payload.participantPhone ?? payload.phone;
   const team = findAnserTeamMember(senderPhone);
