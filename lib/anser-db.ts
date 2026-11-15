@@ -174,3 +174,107 @@ export async function logAnserAlert(params: {
   });
   if (!res.ok) throw new Error(`Supabase error (anser_alerts insert): ${res.status} ${await res.text()}`);
 }
+
+export async function logSatisfactionEvent(params: {
+  groupId: string;
+  messageId: string;
+  classification: "positivo" | "atencao" | "critico";
+  reason: string;
+}): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/anser_satisfaction_events`, {
+    method: "POST",
+    headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({
+      group_id: params.groupId,
+      message_id: params.messageId,
+      classification: params.classification,
+      reason: params.reason,
+    }),
+  });
+  if (!res.ok) throw new Error(`Supabase error (anser_satisfaction_events insert): ${res.status} ${await res.text()}`);
+}
+
+export async function createPendency(params: { groupId: string; messageId: string; description: string }): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/anser_pendencies`, {
+    method: "POST",
+    headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({ group_id: params.groupId, message_id: params.messageId, description: params.description }),
+  });
+  if (!res.ok) throw new Error(`Supabase error (anser_pendencies insert): ${res.status} ${await res.text()}`);
+}
+
+export async function logOpportunity(params: { groupId: string; messageId: string; description: string }): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/anser_opportunities`, {
+    method: "POST",
+    headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({ group_id: params.groupId, message_id: params.messageId, description: params.description }),
+  });
+  if (!res.ok) throw new Error(`Supabase error (anser_opportunities insert): ${res.status} ${await res.text()}`);
+}
+
+export async function logError(params: {
+  groupId: string;
+  messageId: string;
+  description: string;
+  severity: "normal" | "alto_impacto";
+}): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/anser_errors`, {
+    method: "POST",
+    headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({
+      group_id: params.groupId,
+      message_id: params.messageId,
+      description: params.description,
+      severity: params.severity,
+    }),
+  });
+  if (!res.ok) throw new Error(`Supabase error (anser_errors insert): ${res.status} ${await res.text()}`);
+}
+
+export async function createPromise(params: {
+  groupId: string;
+  messageId: string;
+  collaboratorName: string;
+  content: string;
+  deadlineIso: string | null;
+}): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/anser_promises`, {
+    method: "POST",
+    headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({
+      group_id: params.groupId,
+      message_id: params.messageId,
+      collaborator_name: params.collaboratorName,
+      content: params.content,
+      deadline: params.deadlineIso,
+    }),
+  });
+  if (!res.ok) throw new Error(`Supabase error (anser_promises insert): ${res.status} ${await res.text()}`);
+}
+
+export interface AnserPromise {
+  id: string;
+  group_id: string;
+  collaborator_name: string;
+  content: string;
+  deadline: string | null;
+}
+
+export async function getOverduePromises(): Promise<AnserPromise[]> {
+  const nowIso = new Date().toISOString();
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/anser_promises?status=eq.pendente&deadline=not.is.null&deadline=lt.${encodeURIComponent(nowIso)}&select=*`,
+    { headers: headers() }
+  );
+  if (!res.ok) throw new Error(`Supabase error (anser_promises sweep): ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+export async function markPromiseOverdue(promiseId: string): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/anser_promises?id=eq.${encodeURIComponent(promiseId)}`, {
+    method: "PATCH",
+    headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({ status: "vencida", alert_sent_at: new Date().toISOString() }),
+  });
+  if (!res.ok) throw new Error(`Supabase error (anser_promises update): ${res.status} ${await res.text()}`);
+}
