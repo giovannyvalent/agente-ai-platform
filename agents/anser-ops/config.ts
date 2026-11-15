@@ -6,10 +6,7 @@
 export const ANSER_FELIPE_PHONE = "5591993866999";
 export const ANSER_REBECA_PHONE = "5591984186284"; // Rebeka Vaz, confirmada em 2026-11-14
 
-// TESTE TEMPORÁRIO 2026-11-15: Giovanny no lugar da Rebeca, pra validar o
-// alerta crítico sem incomodar a Rebeca com mensagem de teste. Reverter pra
-// ANSER_REBECA_PHONE assim que o teste for confirmado.
-export const ANSER_ALERT_RECIPIENTS = [ANSER_FELIPE_PHONE, "559181628017"];
+export const ANSER_ALERT_RECIPIENTS = [ANSER_FELIPE_PHONE, ANSER_REBECA_PHONE];
 
 export interface AnserTeamMember {
   name: string;
