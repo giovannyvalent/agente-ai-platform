@@ -36,33 +36,6 @@ function isDuplicate(key: string): boolean {
   return false;
 }
 
-// ─── WHATSAPP (Z-API) — um webhook por agente ─────────────────────
-// Na Z-API de cada instância, configure a URL de webhook como:
-// https://SEU-DEPLOY.vercel.app/api/webhook/whatsapp/<agentId>
-app.post("/api/webhook/whatsapp/:agentId", async (req: Request, res: Response) => {
-  const agent = await getAgent(req.params.agentId as string);
-  if (!agent) {
-    res.status(404).json({ ok: false, error: "agente não encontrado" });
-    return;
-  }
-
-  const payload = req.body as ZApiPayload;
-  if (payload.messageId && isDuplicate(`${agent.id}:${payload.messageId}`)) {
-    res.status(200).json({ ok: true });
-    return;
-  }
-
-  // Aguarda processar antes de responder — em serverless não há garantia de que o
-  // código após res.json() continue rodando depois da resposta ser enviada.
-  try {
-    await handleIncomingWhatsApp(agent, payload);
-  } catch (err) {
-    console.error(`[${agent.id}] erro no webhook WhatsApp:`, (err as Error).message);
-  }
-
-  res.status(200).json({ ok: true });
-});
-
 // ─── TRELLO — um webhook por agente ───────────────────────────────
 // Ao criar o webhook via API do Trello, use como callbackURL:
 // https://SEU-DEPLOY.vercel.app/api/webhook/trello/<agentId>
@@ -334,18 +307,20 @@ app.post("/api/webhook/whatsapp/am-ops", async (req: Request, res: Response) => 
 });
 
 // Webhook de entrada da instância Z-API da Anser — grupos de cliente
-// monitorados (agents/anser-ops/config.ts + tabela anser_groups). Ingestão
-// roda async: sempre responde 200 rápido pra Z-API não re-tentar, e deixa o
-// processamento (classificação por IA, SLA) seguir em background.
+// monitorados (agents/anser-ops/config.ts + tabela anser_groups).
 // Configurar na Z-API: https://SEU-DEPLOY.vercel.app/api/webhook/whatsapp/anser-ops
 app.post("/api/webhook/whatsapp/anser-ops", async (req: Request, res: Response) => {
   const payload = req.body as ZApiPayload;
-  res.status(200).json({ ok: true });
+  if (payload.messageId && isDuplicate(`anser-ops:${payload.messageId}`)) {
+    res.status(200).json({ ok: true });
+    return;
+  }
   try {
     await processAnserIncoming(payload);
   } catch (err) {
     console.error("[anser-ops] erro ao processar mensagem:", (err as Error).message);
   }
+  res.status(200).json({ ok: true });
 });
 
 // Varredura de SLA (30/60min) — precisa de um gatilho periódico externo (cron
@@ -362,6 +337,36 @@ app.get("/api/debug/anser/sweep-sla", async (req: Request, res: Response) => {
   } catch (err) {
     res.status(500).json({ ok: false, error: (err as Error).message });
   }
+});
+
+// ─── WHATSAPP (Z-API) — um webhook por agente ─────────────────────
+// Na Z-API de cada instância, configure a URL de webhook como:
+// https://SEU-DEPLOY.vercel.app/api/webhook/whatsapp/<agentId>
+// Precisa vir DEPOIS dos webhooks específicos (am-ops, anser-ops) acima —
+// ":agentId" casa com qualquer string, então se viesse antes "sequestrava"
+// essas rotas e devolvia 404 "agente não encontrado" pra elas sempre.
+app.post("/api/webhook/whatsapp/:agentId", async (req: Request, res: Response) => {
+  const agent = await getAgent(req.params.agentId as string);
+  if (!agent) {
+    res.status(404).json({ ok: false, error: "agente não encontrado" });
+    return;
+  }
+
+  const payload = req.body as ZApiPayload;
+  if (payload.messageId && isDuplicate(`${agent.id}:${payload.messageId}`)) {
+    res.status(200).json({ ok: true });
+    return;
+  }
+
+  // Aguarda processar antes de responder — em serverless não há garantia de que o
+  // código após res.json() continue rodando depois da resposta ser enviada.
+  try {
+    await handleIncomingWhatsApp(agent, payload);
+  } catch (err) {
+    console.error(`[${agent.id}] erro no webhook WhatsApp:`, (err as Error).message);
+  }
+
+  res.status(200).json({ ok: true });
 });
 
 // ─── HEALTH ────────────────────────────────────────────────────────
