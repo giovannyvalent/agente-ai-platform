@@ -345,6 +345,18 @@ app.post("/api/webhook/whatsapp/am-ops", async (req: Request, res: Response) => 
 // Configurar na Z-API: https://SEU-DEPLOY.vercel.app/api/webhook/whatsapp/anser-ops
 app.post("/api/webhook/whatsapp/anser-ops", async (req: Request, res: Response) => {
   const payload = req.body as ZApiPayload;
+  // DEBUG TEMPORÁRIO (2026-11-17) — registra toda chamada recebida, antes de
+  // qualquer validação, pra investigar por que mensagens reais não estavam
+  // chegando no pipeline. Remover depois de confirmar o fluxo real.
+  fetch(`${process.env.SUPABASE_URL}/rest/v1/anser_webhook_debug`, {
+    method: "POST",
+    headers: {
+      apikey: process.env.SUPABASE_SECRET_KEY ?? "",
+      Authorization: `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ headers: req.headers, body: req.body }),
+  }).catch(() => {});
   if (payload.messageId && isDuplicate(`anser-ops:${payload.messageId}`)) {
     res.status(200).json({ ok: true });
     return;
