@@ -183,6 +183,32 @@ app.get("/api/debug/anser/zapi-status", async (req: Request, res: Response) => {
   }
 });
 
+// ─── DEBUG TEMPORÁRIO — garantir que o webhook "ao receber mensagem" da
+// instância Z-API da Anser aponta pro nosso endpoint. A Z-API não expõe GET
+// pra consultar o valor atual, só PUT pra setar -- então esse endpoint seta
+// (idempotente) e devolve a confirmação, em vez de só inspecionar.
+app.post("/api/debug/anser/fix-webhook", async (req: Request, res: Response) => {
+  if (!checkDebugSecret(req)) {
+    res.status(401).json({ ok: false });
+    return;
+  }
+  const instanceId = process.env.ANSER_ZAPI_INSTANCE_ID;
+  const token = process.env.ANSER_ZAPI_TOKEN;
+  const clientToken = process.env.ANSER_ZAPI_CLIENT_TOKEN || process.env.GESTAO_MARKETING_ZAPI_CLIENT_TOKEN;
+  const webhookUrl = `https://${req.get("host")}/api/webhook/whatsapp/anser-ops`;
+  try {
+    const r = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/update-webhook-received`, {
+      method: "PUT",
+      headers: { "Client-Token": clientToken ?? "", "Content-Type": "application/json" },
+      body: JSON.stringify({ value: webhookUrl }),
+    });
+    const body = await r.text();
+    res.status(200).json({ ok: true, httpStatus: r.status, webhookUrl, body });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
+});
+
 // Lista os grupos de WhatsApp visíveis na instância da Anser, pra decidir
 // com o cliente quais entram no monitoramento e quais ficam de fora.
 app.get("/api/debug/anser/groups", async (req: Request, res: Response) => {
