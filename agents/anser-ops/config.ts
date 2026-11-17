@@ -5,8 +5,11 @@
 
 export const ANSER_FELIPE_PHONE = "5591993866999";
 export const ANSER_REBECA_PHONE = "5591984186284"; // Rebeka Vaz, confirmada em 2026-11-14
+export const ANSER_GIOVANNY_PHONE = "559181628017";
 
-export const ANSER_ALERT_RECIPIENTS = [ANSER_FELIPE_PHONE, ANSER_REBECA_PHONE];
+// Fixado em Felipe + Giovanny por pedido explícito do usuário em 2026-11-17
+// (fase de testes do agente) -- Rebeca fica de fora por enquanto.
+export const ANSER_ALERT_RECIPIENTS = [ANSER_FELIPE_PHONE, ANSER_GIOVANNY_PHONE];
 
 export interface AnserTeamMember {
   name: string;
