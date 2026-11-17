@@ -16,9 +16,11 @@ export interface AnserTeamMember {
   phone: string;
 }
 
+// Giovanny Valente removido TEMPORARIAMENTE (2026-11-17, fase de teste) pra
+// que mensagens do número dele sejam classificadas como CLIENTE em vez de
+// equipe -- precisa voltar pra lista depois que os testes terminarem.
 export const ANSER_TEAM: AnserTeamMember[] = [
   { name: "Felipe Cardoso", phone: "5591993866999" },
-  { name: "Giovanny Valente", phone: "559181628017" },
   { name: "Joao Tenorio", phone: "5591981798280" },
   { name: "Ana Carolina", phone: "5591982695419" },
   { name: "Rebeka Vaz", phone: "5591984186284" },
