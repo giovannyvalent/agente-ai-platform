@@ -203,7 +203,15 @@ app.post("/api/debug/anser/fix-webhook", async (req: Request, res: Response) => 
       body: JSON.stringify({ value: webhookUrl }),
     });
     const body = await r.text();
-    res.status(200).json({ ok: true, httpStatus: r.status, webhookUrl, body });
+    // Zera qualquer filtro de mensagem (ex: FILTER_FROM_GROUP) que possa estar
+    // bloqueando grupo ou DM no webhook -- briefing exige monitorar tudo.
+    const rf = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/update-filters`, {
+      method: "PUT",
+      headers: { "Client-Token": clientToken ?? "", "Content-Type": "application/json" },
+      body: JSON.stringify({ messageFilters: [] }),
+    });
+    const filtersBody = await rf.text();
+    res.status(200).json({ ok: true, httpStatus: r.status, webhookUrl, body, filtersHttpStatus: rf.status, filtersBody });
   } catch (err) {
     res.status(500).json({ ok: false, error: (err as Error).message });
   }
